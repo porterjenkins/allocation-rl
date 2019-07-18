@@ -2,12 +2,49 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
 
+
+def fixTrueParams(n_products, n_regions, A, random_seed=1990, persist=True):
+    np.random.seed(random_seed)
+
+    params = {}
+
+    ## Customer generation
+
+    # day of week features (one for each day of the week. weekends recieve heavier weight)
+    params['mu_c'] = np.array([2.0, 0.0, 0.0, 0.0, 3.0, 5.0, 7.0,])
+    params['sigma_c'] = np.eye(len(params['mu_c']))
+    params['beta_c'] = np.random.multivariate_normal(mean=params['mu_c'], cov=params['sigma_c'])
+
+
+    ## quantity demanded
+
+    params['phi'] = np.random.uniform(-1, 1, size=n_products)
+    params['psi'] = np.eye(n_products)
+    #for i in range(n_products):
+    #    params['psi'] += np.random.randint(-5, 5)
+
+    params['mu_i'] = np.random.multivariate_normal(mean=params['phi'], cov=params['psi'])
+    sigma_i = np.random.multivariate_normal(np.zeros(n_regions), cov=np.eye(n_regions))
+    params['sigma_i'] = np.multiply(sigma_i, A)
+
+    if persist:
+        paramsSerializable = {}
+        for key, item in params.items():
+            if isinstance(item, np.ndarray):
+                paramsSerializable[key] = params[key].tolist()
+            else:
+                paramsSerializable[key] = params[key]
+        with open("params.json", 'w') as f:
+            json.dump(paramsSerializable, f)
+
+    return params
 
 
 class DataGenerator(object):
 
-    def __init__(self,  n_regions, n_products, max_t, prices, plot):
+    def __init__(self,  n_regions, n_products, max_t, prices, plot=True):
         self.n_regions = n_regions
         self.n_products = n_products
         self.max_t = max_t
@@ -67,10 +104,17 @@ class DataGenerator(object):
 
 
 if __name__ == "__main__":
-    n_regions = 4
-    n_products = 4
-    T = 20
-    prices = [2.50, 4.99, 3.00, 1.20]
-    plot = True
 
-    generator = DataGenerator(n_regions, n_products, T, prices, plot)
+    with open('config.json') as f:
+        config = json.load(f)
+
+    config['adj_mtx'] = np.eye(config['n_products'])
+
+    params = fixTrueParams(config['n_products'], config['n_regions'], config['adj_mtx'])
+
+
+
+    generator = DataGenerator(config['n_regions'],
+                              config['n_products'],
+                              config['max_t'],
+                              config['prices'])
