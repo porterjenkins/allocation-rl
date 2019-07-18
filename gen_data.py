@@ -5,7 +5,7 @@ import seaborn as sns
 import json
 
 
-def fixTrueParams(n_products, n_regions, A, random_seed=1990, persist=True):
+def fixTrueParams(n_products, n_regions, A, n_q_features, random_seed=1990, persist=True):
     np.random.seed(random_seed)
 
     params = {}
@@ -25,9 +25,12 @@ def fixTrueParams(n_products, n_regions, A, random_seed=1990, persist=True):
     #for i in range(n_products):
     #    params['psi'] += np.random.randint(-5, 5)
 
-    params['mu_i'] = np.random.multivariate_normal(mean=params['phi'], cov=params['psi'])
-    sigma_i = np.random.multivariate_normal(np.zeros(n_regions), cov=np.eye(n_regions))
+    params['mu_i'] = np.random.multivariate_normal(mean=params['phi'], cov=params['psi'], size=n_products)
+    sigma_i = np.random.uniform(0, 5, size=n_products)
     params['sigma_i'] = np.multiply(sigma_i, A)
+    params['beta_ij'] = np.zeros(shape=(n_products, n_regions, n_q_features))
+    for i in range(n_products):
+        params['beta_ij'][i, :, :] = np.random.multivariate_normal(mean=params['mu_i'][i, :], cov=params['sigma_i'])
 
     if persist:
         paramsSerializable = {}
@@ -110,7 +113,7 @@ if __name__ == "__main__":
 
     config['adj_mtx'] = np.eye(config['n_products'])
 
-    params = fixTrueParams(config['n_products'], config['n_regions'], config['adj_mtx'])
+    params = fixTrueParams(config['n_products'], config['n_regions'], config['adj_mtx'], n_q_features=4)
 
 
 
