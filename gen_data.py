@@ -4,8 +4,23 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 
+def getStructuredCovariance(A, n_regions, n_quantity_features):
+    # Covariance for region features
+    sigma_i_regions = np.random.uniform(0, 5, size=n_regions)
+    sigma_regions = np.multiply(sigma_i_regions, A)
 
-def fixTrueParams(n_products, n_regions, A, n_q_features, random_seed=1990, persist=True):
+    # covariance for other features (products, n_cust, etc...)
+    sigma_i_other = np.random.uniform(0, 1, size=n_quantity_features-n_regions)
+
+    Sigma = np.eye(n_quantity_features)
+    Sigma[:n_regions, :n_regions] = sigma_regions
+    sigma_other = np.multiply(Sigma[n_regions:n_quantity_features, n_regions:n_quantity_features], sigma_i_other)
+    Sigma[n_regions:n_quantity_features, n_regions:n_quantity_features] = sigma_other
+
+
+    return Sigma
+
+def fixTrueParams(n_products, n_regions, A, random_seed=1990, persist=True):
     np.random.seed(random_seed)
 
     params = {}
@@ -19,18 +34,21 @@ def fixTrueParams(n_products, n_regions, A, n_q_features, random_seed=1990, pers
 
 
     ## quantity demanded
+    # number of products + a parameter for the number of customers
+    n_quantity_features = n_regions + n_products + 1
 
-    params['phi'] = np.random.uniform(-1, 1, size=n_products)
-    params['psi'] = np.eye(n_products)
-    #for i in range(n_products):
-    #    params['psi'] += np.random.randint(-5, 5)
+    params['phi'] = np.random.uniform(10, 100, size=n_quantity_features)
+    params['psi'] = np.eye(n_quantity_features)
+
 
     params['mu_i'] = np.random.multivariate_normal(mean=params['phi'], cov=params['psi'], size=n_products)
-    sigma_i = np.random.uniform(0, 5, size=n_products)
-    params['sigma_i'] = np.multiply(sigma_i, A)
-    params['beta_ij'] = np.zeros(shape=(n_products, n_regions, n_q_features))
+    params['sigma_i'] = getStructuredCovariance(A, n_regions, n_quantity_features)
+    params['beta_ij'] = np.zeros(shape=(n_products, n_regions, n_quantity_features))
+
     for i in range(n_products):
-        params['beta_ij'][i, :, :] = np.random.multivariate_normal(mean=params['mu_i'][i, :], cov=params['sigma_i'])
+        params['beta_ij'][i, :, :] = np.random.multivariate_normal(mean=params['mu_i'][i, :],
+                                                                   cov=params['sigma_i'],
+                                                                   size=n_regions)
 
     if persist:
         paramsSerializable = {}
@@ -47,13 +65,32 @@ def fixTrueParams(n_products, n_regions, A, n_q_features, random_seed=1990, pers
 
 class DataGenerator(object):
 
-    def __init__(self,  n_regions, n_products, max_t, prices, plot=True):
+    def __init__(self,  n_regions, n_products, max_t, prices, params, plot=True):
         self.n_regions = n_regions
         self.n_products = n_products
         self.max_t = max_t
         self.prices = prices
+        self.params = params
         self.plot = plot
 
+    def get_quantity_features(self, r, p, c):
+        c_vec = np.array([c])
+        features = np.concatenate([r, p, c_vec])
+        return features
+
+
+    def gen_customer_counts(self, beta_c, x_t):
+        lambda_c = np.dot(beta_c, x_t)
+        lambda_c_floor = np.maximum(0, lambda_c)
+        c_j = np.random.poisson(lam=lambda_c_floor)
+        return c_j
+
+    def gen_demand_q(self, beta_ij, x_ij):
+
+        lambda_q = np.dot(beta_ij, x_ij)
+        q = np.random.poisson(lambda_q)
+
+        return q
 
 
     def gen_q(self, prod, t, r):
@@ -64,18 +101,31 @@ class DataGenerator(object):
         q = np.random.poisson(lam=lmbda, size=r)
         return q
 
+    def get_sales(self, quantity, prices):
+        sales = np.dot(np.transpose(quantity), prices)
+        return sales
+
     def run(self):
         quantity_data = np.zeros(shape=(self.max_t*self.n_products*self.n_regions, 4))
         sales_data = np.zeros(shape=(self.max_t*self.n_products*self.n_regions))
 
         cntr = 0
         for t in range(self.max_t):
+            day_of_week_vec = np.zeros(7)
+            day_of_week = t % 7
+            day_of_week_vec[day_of_week] = 1.0
+            c_j = self.gen_customer_counts(params['beta_c'], day_of_week_vec)
+
+            p_vec = np.eye(self.n_products)
             for p in range(self.n_products):
+                r_vec = np.eye(self.n_regions)
                 for r in range(self.n_regions):
-                    p_vec = np.zeros(self.n_products)
-                    p_vec[p] = 1.0
-                    q_tpr = self.gen_q(p_vec, t, 1)
-                    s_tpr = q_tpr*self.prices[int(p)]
+
+
+                    x_pr = self.get_quantity_features(r_vec[r], p_vec[p], c_j)
+                    beta_ij = params['beta_ij'][p, r]
+                    q_tpr = self.gen_demand_q(beta_ij, x_pr)
+                    s_tpr = self.prices[p] * q_tpr
 
                     quantity_data[cntr, 0] = t
                     quantity_data[cntr, 1] = p
@@ -113,11 +163,14 @@ if __name__ == "__main__":
 
     config['adj_mtx'] = np.eye(config['n_products'])
 
-    params = fixTrueParams(config['n_products'], config['n_regions'], config['adj_mtx'], n_q_features=4)
+    params = fixTrueParams(config['n_products'], config['n_regions'], config['adj_mtx'])
 
 
 
     generator = DataGenerator(config['n_regions'],
                               config['n_products'],
                               config['max_t'],
-                              config['prices'])
+                              config['prices'],
+                              params)
+
+    generator.run()
