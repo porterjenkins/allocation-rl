@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 from true_params import TrueParams
+from plot import plot_region_product
 
 class DataGenerator(object):
 
@@ -96,15 +97,7 @@ class DataGenerator(object):
         print(data.head(25))
 
         data.to_csv(fname)
-
-        if self.plot:
-
-            sns.set(style="darkgrid")
-            sns.relplot(x="time", y="quantity",
-                         style="product",  kind="line",
-                         data=data)
-
-            plt.show()
+        return data
 
 
 
@@ -126,4 +119,6 @@ if __name__ == "__main__":
                               config['prices'],
                               params)
 
-    generator.run("test-data-simple.csv")
+    data = generator.run("test-data-simple.csv")
+    plot_region_product(df=data, n_product=config['n_products'], n_region=config['n_regions'],
+                        fname='test-data-simple.pdf')

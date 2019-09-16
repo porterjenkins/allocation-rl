@@ -30,7 +30,7 @@ class TrueParams(object):
 
     #def __init__(self):
 
-    def fixTrueParams(self, n_products, n_regions, A, random_seed=1990, gamma=10, persist=True):
+    def fixTrueParams(self, n_products, n_regions, A, random_seed=1990, gamma=100, persist=True):
         np.random.seed(random_seed)
         params = {}
 
@@ -53,7 +53,7 @@ class TrueParams(object):
                                                    scale=params['prior_scale_w_p'])])
 
         # generate region weights
-        params['prior_loc_w_r'] = np.ones(n_regions)*10
+        params['prior_loc_w_r'] =np.random.uniform(10, 100, n_products)
         params['prior_scale_w_r'] = A*gamma
         params['w_r'] = np.zeros([n_products, n_regions])
         w_r = np.random.multivariate_normal(mean=params['prior_loc_w_r'],
