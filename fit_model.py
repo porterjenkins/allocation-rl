@@ -5,6 +5,7 @@ import pandas as pd
 import theano
 import pandas as pd
 import json
+from plot import plot_posterior_predictive_check
 
 
 with open('config.json') as f:
@@ -97,13 +98,19 @@ with pm.Model() as env_model:
 """
 
 with env_model:
-    trace = pm.sample(1000, tune=1000, init='advi+adapt_diag')
+    trace = pm.sample(50000, tune=50000, init='advi+adapt_diag')
     posterior_pred = pm.sample_posterior_predictive(trace)
 
 
 y_hat = posterior_pred['quantity_ij'].mean(axis=0)
 sales = posterior_pred['quantity_ij'] * prices
 y_hat_sales = sales.mean(axis=0)
+data['sales_pred_upper'] = np.percentile(sales, q=97.5, axis=0)
+data['sales_pred_lower'] = np.percentile(sales, q=2.5, axis=0)
+
+data['sales_pred'] = y_hat_sales.flatten()
+
+print(data.head())
 
 print(posterior_pred['quantity_ij'].shape)
 
@@ -121,3 +128,5 @@ mse_sales = np.mean(np.power((data.sales.values - y_hat_sales),2))
 #plt.figure(figsize=(7, 7))
 #pm.traceplot(trace)
 #plt.savefig("trace-plot.pdf")
+
+data.to_csv("model-output.csv")
