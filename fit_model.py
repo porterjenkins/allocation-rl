@@ -5,8 +5,7 @@ import pandas as pd
 import theano
 import pandas as pd
 import json
-from gen_data import getStructuredCovariance
-from pymc3 import model_to_graphviz
+
 
 with open('config.json') as f:
     config = json.load(f)
@@ -56,8 +55,8 @@ with pm.Model() as env_model:
     w_r = pm.MvNormal('w_r', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=N_REGIONS)
 
     # Prior for product weights
-    prior_loc_w_p = np.ones(N_REGIONS)*100
-    prior_scale_w_r = np.eye(N_PRODUCTS)*20
+    prior_loc_w_p = np.ones(N_PRODUCTS)*15
+    prior_scale_w_r = np.eye(N_PRODUCTS)*5
     # Generate Product weights
     w_p = pm.MvNormal('w_p', mu=prior_loc_w_p, cov=prior_scale_w_r, shape=N_PRODUCTS)
 
@@ -89,7 +88,7 @@ with pm.Model() as env_model:
 
     q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
 
-    sales_ij = q_ij * price_vec
+    #sales_ij = q_ij * price_vec
 
 for RV in env_model.basic_RVs:
     try:
@@ -113,7 +112,7 @@ print(y)
 print(err)
 print("mse: {}".format(mse))
 
-print(posterior_pred['sales'])
+#print(posterior_pred['sales'])
 
 #plt.figure(figsize=(7, 7))
 #pm.traceplot(trace)
