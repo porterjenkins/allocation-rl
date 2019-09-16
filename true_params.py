@@ -42,7 +42,7 @@ class TrueParams(object):
 
         # generate product weights
         params['prior_loc_w_p'] = np.random.uniform(5, 25, n_products)
-        params['prior_scale_w_p'] = np.eye(n_products )*5
+        params['prior_scale_w_p'] = np.eye(n_products)*5
         params['w_p'] = np.random.multivariate_normal(mean=params['prior_loc_w_p'],
                                                       cov=params['prior_scale_w_p'])
 

@@ -12,7 +12,7 @@ with open('config.json') as f:
 
 config['adj_mtx'] = np.eye(config['n_regions'])
 
-data = pd.read_csv('test-data.csv', index_col=0)
+data = pd.read_csv('test-data-simple.csv', index_col=0)
 data['day_of_week'] = data['time'] % 7
 
 day_features_grouped = data[['time', 'day_of_week']].groupby('time').max()
@@ -31,7 +31,7 @@ X_region = region_features.values.astype(theano.config.floatX)
 X_product = product_features.values.astype(theano.config.floatX)
 X_temporal = day_features.values.astype(theano.config.floatX)
 
-price_vec = np.dot(product_features.values, config['prices'])
+prices = np.dot(product_features.values, config['prices']).reshape(1,-1)
 
 
 
@@ -88,14 +88,13 @@ with pm.Model() as env_model:
 
     q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
 
-    #sales_ij = q_ij * price_vec
 
-for RV in env_model.basic_RVs:
+"""for RV in env_model.basic_RVs:
     try:
         print(RV.name, RV.logp(env_model.test_point), RV.dshape)
     except AttributeError:
         print(RV.name, RV.logp(env_model.test_point))
-
+"""
 
 with env_model:
     trace = pm.sample(1000, tune=1000, init='advi+adapt_diag')
@@ -103,16 +102,21 @@ with env_model:
 
 
 y_hat = posterior_pred['quantity_ij'].mean(axis=0)
+sales = posterior_pred['quantity_ij'] * prices
+y_hat_sales = sales.mean(axis=0)
 
+print(posterior_pred['quantity_ij'].shape)
 
 err = y-y_hat
 mse = np.mean(np.power((y - y_hat),2))
 print(y_hat)
 print(y)
-print(err)
 print("mse: {}".format(mse))
 
-#print(posterior_pred['sales'])
+print(y_hat_sales)
+print(data.sales.values)
+
+mse_sales = np.mean(np.power((data.sales.values - y_hat_sales),2))
 
 #plt.figure(figsize=(7, 7))
 #pm.traceplot(trace)
