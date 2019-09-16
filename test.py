@@ -24,7 +24,7 @@ with pm.Model() as hierarchical_model:
     # Intercept for each county, distributed around group mean mu_a
     # Above we just set mu and sd to a fixed value while here we
     # plug in a common group distribution for all a and b (which are
-    # vectors of length n_counties).
+    # vectors of length n_counties)
     a = pm.Normal('a', mu=mu_a, sigma=sigma_a, shape=n_counties)
     # Intercept for each county, distributed around group mean mu_a
     b = pm.Normal('b', mu=mu_b, sigma=sigma_b, shape=n_counties)
