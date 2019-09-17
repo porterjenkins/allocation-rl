@@ -142,3 +142,5 @@ plt.close()
 plt.figure(figsize=(7, 7))
 pm.traceplot(trace[::10], var_names=['w_t'])
 plt.savefig("trace-plot-temporal.pdf")
+
+np.savetxt('sales-draws.csv', sales.transpose()[:, :10], delimiter=',')

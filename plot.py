@@ -49,6 +49,22 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
             plt.clf()
             plt.close()
 
+def plot_total_ppc(df, draws, y_col='sales', fname='total-ppc.pdf'):
+    totals = df[['time', y_col]].groupby('time').sum()
+    draws_all = pd.concat((df, draws), axis=1)
+    draw_cols = list(range(draws.shape[1]))
+    draw_sums = draws_all[['time'] + draw_cols].groupby('time').sum().values
+    y_hat = draw_sums.mean(axis=1)
+    y_hat_lower = np.percentile(draw_sums, q=2.5, axis=1)
+    y_hat_upper = np.percentile(draw_sums, q=97.5, axis=1)
+
+    x = totals.index
+    y = totals[y_col]
+    plt.plot(x, y, label='observed')
+    plt.plot(x, y_hat, label= 'predicted')
+    plt.fill_between(x, y_hat_lower, y_hat_upper, color='gray', alpha=0.2)
+    plt.legend(loc='best')
+    plt.savefig(fname)
 
 
 if __name__ == "__main__":
@@ -59,6 +75,8 @@ if __name__ == "__main__":
 
     config['adj_mtx'] = np.eye(config['n_regions'])
     data = pd.read_csv("model-output.csv")
-    plot_posterior_predictive_check(data, n_product=config['n_products'], n_region=config['n_regions'],
-                                    fname='figs/posterior_predictive_check.pdf', y_col='sales',
-                                    y_hat_col='sales_pred')
+    draws = pd.read_csv('sales-draws.csv',header=None)
+    plot_total_ppc(data, draws=draws ,y_col='sales')
+    #plot_posterior_predictive_check(data, n_product=config['n_products'], n_region=config['n_regions'],
+    #                                fname='figs/posterior_predictive_check.pdf', y_col='sales',
+    #                                y_hat_col='sales_pred')
