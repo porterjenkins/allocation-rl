@@ -21,7 +21,7 @@ day_features_grouped = data[['time', 'day_of_week']].groupby('time').max()
 region_features = pd.get_dummies(data.region, prefix='region')
 product_features = pd.get_dummies(data['product'], prefix='product')
 day_features = pd.get_dummies(day_features_grouped['day_of_week'], prefix='day')
-bias = np.ones(data.shape[0])
+
 
 X_train = pd.concat([region_features, product_features], axis=1)
 
@@ -31,7 +31,7 @@ y = data['quantity'].values.astype(theano.config.floatX)
 X_region = region_features.values.astype(theano.config.floatX)
 X_product = product_features.values.astype(theano.config.floatX)
 X_temporal = day_features.values.astype(theano.config.floatX)
-
+X_lagged = data['prev_sales'].values.astype(theano.config.floatX)
 prices = np.dot(product_features.values, config['prices']).reshape(1,-1)
 
 
@@ -67,6 +67,12 @@ with pm.Model() as env_model:
     # Generate customer weight
     w_c = pm.Normal('w_c', mu=prior_loc_w_c, sigma=prior_scale_w_c)
 
+    # prior for previous sales (s_t-1)
+    prior_loc_w_s = .1
+    prior_scale_w_s = .25
+    # Generate customer weight
+    w_s = pm.Gamma('w_s', mu=prior_loc_w_s, sigma=prior_scale_w_s)
+
 
     # Prior for temporal weights
     prior_loc_w_t = np.array([2.0, 0.0, 0.0, 0.0, 3.0, 5.0, 7.0])
@@ -84,7 +90,7 @@ with pm.Model() as env_model:
     c_all = c_t[TIME_STAMPS] * w_c
     #print("c_all: ", c_all.tag.test_value.shape)
 
-    lambda_q = pm.math.dot(X_region, w_r.T) + pm.math.dot(X_product, w_p.T) + c_all
+    lambda_q = pm.math.dot(X_region, w_r.T) + pm.math.dot(X_product, w_p.T) + c_all + w_s*X_lagged
     #print("lambda_q", lambda_q.tag.test_value.shape)
 
     q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
@@ -98,7 +104,7 @@ with pm.Model() as env_model:
 """
 
 with env_model:
-    trace = pm.sample(10000, tune=10000, init='advi+adapt_diag')
+    trace = pm.sample(1000, tune=1000, init='advi+adapt_diag')
     posterior_pred = pm.sample_posterior_predictive(trace)
     #mean_field = pm.fit(method='advi')
     #posterior_pred = pm.sample_posterior_predictive(mean_field)
@@ -128,6 +134,11 @@ print("sales mse: {}".format(mse_sales))
 data.to_csv("model-output.csv")
 
 plt.figure(figsize=(7, 7))
-pm.traceplot(trace[::100], var_names=['w_t', 'w_p','w_c','w_r'])
+pm.traceplot(trace[::10], var_names=['w_s', 'w_p','w_c','w_r'])
 plt.savefig("trace-plot.pdf")
+plt.clf()
+plt.close()
 
+plt.figure(figsize=(7, 7))
+pm.traceplot(trace[::10], var_names=['w_t'])
+plt.savefig("trace-plot-temporal.pdf")
