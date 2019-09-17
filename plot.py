@@ -39,10 +39,9 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
             y_hat_col_lower = prod_reg_data[y_hat_col + "_lower"]
             #err = np.concatenate((y_hat_col_lower, y_hat_col_upper),axis=0)
 
-            plt.plot(x, y_true, label=y_col)
-            plt.plot(x, y_hat, label=y_hat_col)
+            plt.plot(x, y_true, label='observed')
+            plt.plot(x, y_hat, label='predicted')
             plt.fill_between(x, y_hat_col_upper, y_hat_col_lower, color='gray', alpha=0.2)
-            #plt.errorbar(x, y_hat, yerr=err, label='predicted sales')
             plt.legend(loc='best')
 
 
