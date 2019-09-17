@@ -51,6 +51,11 @@ class TrueParams(object):
         params['prior_scale_w_p'] = 1.0
         params['w_c'] = np.array([np.random.normal(loc=params['prior_loc_w_p'],
                                                    scale=params['prior_scale_w_p'])])
+        # generate sales autoregressive weight
+        params['prior_loc_w_s'] = .05
+        params['prior_scale_w_s'] = .01
+        params['w_s'] = np.array([np.random.normal(loc=params['prior_loc_w_s'],
+                                                   scale=params['prior_scale_w_s'])])
 
         # generate region weights
         params['prior_loc_w_r'] =np.random.uniform(10, 100, n_products)

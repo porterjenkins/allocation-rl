@@ -16,13 +16,14 @@ class DataGenerator(object):
         self.params = params
         self.plot = plot
 
-    def get_quantity_features(self, r, p, c):
+    def get_quantity_features(self, r, p, c, s):
         c_vec = np.array([c])
-        features = np.concatenate([r, p, c_vec])
+        s_vec = np.array([s])
+        features = np.concatenate([r, p, c_vec, s_vec])
         return features
 
-    def get_weights(self, w_r, w_p, w_c):
-        W = np.concatenate((w_r, w_p, w_c))
+    def get_weights(self, w_r, w_p, w_c, w_s):
+        W = np.concatenate((w_r, w_p, w_c, w_s))
         return W
 
 
@@ -56,7 +57,7 @@ class DataGenerator(object):
     def run(self, fname='test-data.csv'):
         quantity_data = np.zeros(shape=(self.max_t*self.n_products*self.n_regions, 4))
         sales_data = np.zeros(shape=(self.max_t*self.n_products*self.n_regions))
-
+        prev_sales = np.zeros(shape=(self.max_t*self.n_products*self.n_regions))
         cntr = 0
         for t in range(self.max_t):
             print("Time stamp: t={}".format(t))
@@ -70,12 +71,16 @@ class DataGenerator(object):
                 r_vec = np.eye(self.n_regions)
                 for r in range(self.n_regions):
 
+                    prev_sales_idx = cntr - (self.n_products*self.n_regions)
+                    if prev_sales_idx >= 0:
+                        prev_sales[cntr] = sales_data[prev_sales_idx]
 
-                    x_pr = self.get_quantity_features(r_vec[r], p_vec[p], c_t)
+                    x_pr = self.get_quantity_features(r_vec[r], p_vec[p], c_t, prev_sales[cntr])
 
                     w_pr = self.get_weights(w_r=params['w_r'][p, :],
                                             w_p=params['w_p'],
-                                            w_c=params['w_c'])
+                                            w_c=params['w_c'],
+                                            w_s=params['w_s'])
 
                     q_tpr = self.gen_demand_q(w_pr, x_pr)
                     s_tpr = self.prices[p] * q_tpr
@@ -85,7 +90,6 @@ class DataGenerator(object):
                     quantity_data[cntr, 2] = r
                     quantity_data[cntr, 3] = q_tpr
 
-
                     sales_data[cntr] = s_tpr
 
                     cntr+=1
@@ -94,6 +98,7 @@ class DataGenerator(object):
         cols = ['time', 'product', 'region', 'quantity']
         data = pd.DataFrame(quantity_data, columns=cols)
         data['sales'] = sales_data
+        data['prev_sales'] = prev_sales
         print(data.head(25))
 
         data.to_csv(fname)
