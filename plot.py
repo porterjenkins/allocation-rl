@@ -14,7 +14,6 @@ def plot_region_product(df, n_product, n_region, fname, y_col='sales'):
             x = prod_reg_data[x_col]
             y = prod_reg_data[y_col]
             ax[i,j].plot(x, y, label=y_col)
-            #ax[i, j].fill_between(x, y + y*.5, y-y*.5, color='gray', alpha=0.2)
             ax[i,j].legend(loc='best')
 
     fig.text(0.5, 0.04, 'Regions', ha='center')
@@ -38,10 +37,12 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
             y_hat = prod_reg_data[y_hat_col]
             y_hat_col_upper = prod_reg_data[y_hat_col + "_upper"]
             y_hat_col_lower = prod_reg_data[y_hat_col + "_lower"]
+            #err = np.concatenate((y_hat_col_lower, y_hat_col_upper),axis=0)
 
             plt.plot(x, y_true, label=y_col)
             plt.plot(x, y_hat, label=y_hat_col)
             plt.fill_between(x, y_hat_col_upper, y_hat_col_lower, color='gray', alpha=0.2)
+            #plt.errorbar(x, y_hat, yerr=err, label='predicted sales')
             plt.legend(loc='best')
 
 

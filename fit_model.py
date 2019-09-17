@@ -38,7 +38,7 @@ prices = np.dot(product_features.values, config['prices']).reshape(1,-1)
 
 N_PRODUCTS = config['n_products']
 N_REGIONS = config['n_regions']
-GAMMA = 1.5
+GAMMA = 100
 N_QUANTITY_FEATURES = N_REGIONS + N_PRODUCTS
 N_TEMPORAL_FEATURES = 7
 N = X_train.shape[0]
@@ -50,14 +50,14 @@ with pm.Model() as env_model:
 
 
     # Prior for region weights
-    prior_loc_w_r = np.ones(N_REGIONS)*10
+    prior_loc_w_r = np.ones(N_REGIONS)*50
     prior_scale_w_r = config['adj_mtx']*GAMMA
     # Generate region weights
     w_r = pm.MvNormal('w_r', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=N_REGIONS)
 
     # Prior for product weights
-    prior_loc_w_p = np.ones(N_PRODUCTS)*15
-    prior_scale_w_r = np.eye(N_PRODUCTS)*5
+    prior_loc_w_p = np.ones(N_PRODUCTS)*10
+    prior_scale_w_r = np.eye(N_PRODUCTS)*25
     # Generate Product weights
     w_p = pm.MvNormal('w_p', mu=prior_loc_w_p, cov=prior_scale_w_r, shape=N_PRODUCTS)
 
@@ -98,35 +98,36 @@ with pm.Model() as env_model:
 """
 
 with env_model:
-    trace = pm.sample(50000, tune=50000, init='advi+adapt_diag')
+    trace = pm.sample(10000, tune=10000, init='advi+adapt_diag')
     posterior_pred = pm.sample_posterior_predictive(trace)
+    #mean_field = pm.fit(method='advi')
+    #posterior_pred = pm.sample_posterior_predictive(mean_field)
 
 
 y_hat = posterior_pred['quantity_ij'].mean(axis=0)
 sales = posterior_pred['quantity_ij'] * prices
 y_hat_sales = sales.mean(axis=0)
-data['sales_pred_upper'] = np.percentile(sales, q=97.5, axis=0)
-data['sales_pred_lower'] = np.percentile(sales, q=2.5, axis=0)
+data['sales_pred_upper'] = np.percentile(sales, q=95.0, axis=0)
+data['sales_pred_lower'] = np.percentile(sales, q=5.0, axis=0)
 
 data['sales_pred'] = y_hat_sales.flatten()
 
 print(data.head())
 
-print(posterior_pred['quantity_ij'].shape)
 
 err = y-y_hat
-mse = np.mean(np.power((y - y_hat),2))
-print(y_hat)
-print(y)
+mse = np.mean(np.abs((y - y_hat)))
+
 print("mse: {}".format(mse))
 
-print(y_hat_sales)
-print(data.sales.values)
 
-mse_sales = np.mean(np.power((data.sales.values - y_hat_sales),2))
+mse_sales = np.mean(np.abs((data.sales.values - y_hat_sales)))
+print("sales mse: {}".format(mse_sales))
 
-#plt.figure(figsize=(7, 7))
-#pm.traceplot(trace)
-#plt.savefig("trace-plot.pdf")
 
 data.to_csv("model-output.csv")
+
+plt.figure(figsize=(7, 7))
+pm.traceplot(trace[::100], var_names=['w_t', 'w_p','w_c','w_r'])
+plt.savefig("trace-plot.pdf")
+
