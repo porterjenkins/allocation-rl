@@ -48,7 +48,8 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
         #plt.legend(loc='best')
         plt.xlabel("Time")
         plt.ylabel("Revenue")
-        plt.savefig(fname + "-{}.pdf".format(j))
+        plt.title("Region: {}".format(j))
+        plt.savefig(fname + "-{}.png".format(j))
         plt.clf()
         plt.close()
 
@@ -81,5 +82,5 @@ if __name__ == "__main__":
     draws = pd.read_csv('sales-draws.csv',header=None)
     #plot_total_ppc(data, draws=draws ,y_col='sales')
     plot_posterior_predictive_check(data, n_product=config['n_products'], n_region=config['n_regions'],
-                                    fname='figs/posterior_predictive_check.pdf', y_col='sales',
+                                    fname='figs/posterior_predictive_check', y_col='sales',
                                     y_hat_col='sales_pred')
