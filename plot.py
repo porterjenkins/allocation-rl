@@ -27,10 +27,12 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
 
     #fig, ax = plt.subplots(nrows=n_product, ncols=n_region, sharex=True, sharey=True, figsize=(12,12))
 
-    for i in range(n_product):
-        prod_data = df[df['product'] == i]
-        for j in range(n_region):
-            prod_reg_data = prod_data[df['region'] == j].reset_index()
+
+    for j in range(n_region):
+        reg_data = df[df['region'] == j]
+        #plt.figure(figsize=(10, 10))
+        for i in range(n_product):
+            prod_reg_data = reg_data[reg_data['product'] == i].reset_index()
 
             x = prod_reg_data[x_col]
             y_true = prod_reg_data[y_col]
@@ -39,17 +41,18 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
             y_hat_col_lower = prod_reg_data[y_hat_col + "_lower"]
             #err = np.concatenate((y_hat_col_lower, y_hat_col_upper),axis=0)
 
-            plt.plot(x, y_true, label='observed')
-            plt.plot(x, y_hat, label='predicted')
+            plt.plot(x, y_true, label='product: {} - true'.format(i))
+            plt.plot(x, y_hat, label='product: {} - pred'.format(i), linestyle='--')
             plt.fill_between(x, y_hat_col_upper, y_hat_col_lower, color='gray', alpha=0.2)
-            plt.legend(loc='best')
 
+        #plt.legend(loc='best')
+        plt.xlabel("Time")
+        plt.ylabel("Revenue")
+        plt.savefig(fname + "-{}.pdf".format(j))
+        plt.clf()
+        plt.close()
 
-            plt.savefig(fname + "-{}-{}.pdf".format(i,j))
-            plt.clf()
-            plt.close()
-
-def plot_total_ppc(df, draws, y_col='sales', fname='total-ppc.pdf'):
+def plot_total_ppc(df, draws, y_col='sales', fname='total-ppc.png'):
     totals = df[['time', y_col]].groupby('time').sum()
     draws_all = pd.concat((df, draws), axis=1)
     draw_cols = list(range(draws.shape[1]))
@@ -76,7 +79,7 @@ if __name__ == "__main__":
     config['adj_mtx'] = np.eye(config['n_regions'])
     data = pd.read_csv("model-output.csv")
     draws = pd.read_csv('sales-draws.csv',header=None)
-    plot_total_ppc(data, draws=draws ,y_col='sales')
-    #plot_posterior_predictive_check(data, n_product=config['n_products'], n_region=config['n_regions'],
-    #                                fname='figs/posterior_predictive_check.pdf', y_col='sales',
-    #                                y_hat_col='sales_pred')
+    #plot_total_ppc(data, draws=draws ,y_col='sales')
+    plot_posterior_predictive_check(data, n_product=config['n_products'], n_region=config['n_regions'],
+                                    fname='figs/posterior_predictive_check.pdf', y_col='sales',
+                                    y_hat_col='sales_pred')
