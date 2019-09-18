@@ -124,6 +124,7 @@ if __name__ == "__main__":
                               config['prices'],
                               params)
 
-    data = generator.run("test-data-simple.csv")
-    plot_region_product(df=data, n_product=config['n_products'], n_region=config['n_regions'],
+    train = generator.run("train-data-simple.csv")
+    plot_region_product(df=train, n_product=config['n_products'], n_region=config['n_regions'],
                         fname='test-data-simple.pdf')
+    test = generator.run("test-data-simple.csv")
