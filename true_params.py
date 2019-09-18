@@ -31,7 +31,7 @@ class TrueParams(object):
     #def __init__(self):
 
     def fixTrueParams(self, n_products, n_regions, A, random_seed=1990, gamma=100, persist=True):
-        np.random.seed(random_seed)
+        #np.random.seed(random_seed)
         params = {}
 
         # generate day of week weights (one for each day of the week. weekends recieve heavier weight)
