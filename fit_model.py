@@ -13,7 +13,7 @@ with open('config.json') as f:
 
 config['adj_mtx'] = np.eye(config['n_regions'])
 
-data = pd.read_csv('test-data-simple.csv', index_col=0)
+data = pd.read_csv('train-data-simple.csv', index_col=0)
 data['day_of_week'] = data['time'] % 7
 
 day_features_grouped = data[['time', 'day_of_week']].groupby('time').max()
@@ -46,8 +46,9 @@ T = len(data['time'].unique())
 TIME_STAMPS = data['time'].values.astype(int)
 
 
-with pm.Model() as env_model:
+#def build_env_model(X_region, X_product, X_temporal, X_lagged):
 
+with pm.Model() as env_model:
 
     # Prior for region weights
     prior_loc_w_r = np.ones(N_REGIONS)*50
@@ -96,15 +97,11 @@ with pm.Model() as env_model:
     q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
 
 
-"""for RV in env_model.basic_RVs:
-    try:
-        print(RV.name, RV.logp(env_model.test_point), RV.dshape)
-    except AttributeError:
-        print(RV.name, RV.logp(env_model.test_point))
-"""
+
+
 
 with env_model:
-    trace = pm.sample(1000, tune=1000, init='advi+adapt_diag')
+    trace = pm.sample(10000, tune=10000, init='advi+adapt_diag')
     posterior_pred = pm.sample_posterior_predictive(trace)
     #mean_field = pm.fit(method='advi')
     #posterior_pred = pm.sample_posterior_predictive(mean_field)
@@ -134,13 +131,13 @@ print("sales mse: {}".format(mse_sales))
 data.to_csv("model-output.csv")
 
 plt.figure(figsize=(7, 7))
-pm.traceplot(trace[::10], var_names=['w_s', 'w_p','w_c','w_r'])
-plt.savefig("trace-plot.pdf")
+pm.traceplot(trace[::100], var_names=['w_s', 'w_p','w_c','w_r'])
+plt.savefig("trace-plot.png")
 plt.clf()
 plt.close()
 
 plt.figure(figsize=(7, 7))
-pm.traceplot(trace[::10], var_names=['w_t'])
-plt.savefig("trace-plot-temporal.pdf")
+pm.traceplot(trace[::100], var_names=['w_t'])
+plt.savefig("trace-plot-temporal.png")
 
-np.savetxt('sales-draws.csv', sales.transpose()[:, :10], delimiter=',')
+np.savetxt('sales-draws.csv', sales.transpose()[:, :100], delimiter=',')
