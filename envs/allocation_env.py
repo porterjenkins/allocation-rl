@@ -24,7 +24,6 @@ class AllocationEnv(object):
         self.X_temporal = theano.shared(train_features.temporal)
         self.X_lagged = theano.shared(train_features.lagged)
         self.time_stamps = theano.shared(train_features.time_stamps)
-        self.n_time_stamps = train_features.n_time_stamps
         self.y = theano.shared(train_features.y)
         self.prices = train_features.prices
         self.model = None
@@ -53,7 +52,7 @@ class AllocationEnv(object):
             w_t = pm.MvNormal('w_t', mu=self.prior.loc_w_t, cov=self.prior.scale_w_t,
                               shape=self.n_temporal_features)
             lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
-            c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=self.n_time_stamps)
+            c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=self.X_temporal.shape.eval()[0])
 
             c_all = c_t[self.time_stamps] * w_c
 
@@ -95,7 +94,7 @@ class AllocationEnv(object):
         self.X_lagged.set_value(features.lagged)
         self.time_stamps.set_value(features.time_stamps)
         self.y.set_value(features.y)
-        self.n_time_stamps = features.n_time_stamps
+
 
     def __get_sales(self, q_ij):
         sales = q_ij * self.prices
