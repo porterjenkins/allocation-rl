@@ -49,12 +49,10 @@ class Prior(object):
         self.loc_w_s = prior['loc_w_s']
         self.scale_w_s = prior['scale_w_s']
         # prior for day
-        self.loc_w_t = self.__get_loc_val(prior['loc_w_t'], self.n_products)
-        self.scale_w_t = self.__get_scale_val(prior['loc_w_p'], self.n_products)
+        self.loc_w_t = self.__get_loc_val(prior['loc_w_t'], self.n_temporal_features)
+        self.scale_w_t = self.__get_scale_val(prior['loc_w_p'], self.n_temporal_features)
 
 
 if __name__ == "__main__":
     prior = Prior(config=cfg.vals,
                   fname='prior.json')
-
-    stop = 0
