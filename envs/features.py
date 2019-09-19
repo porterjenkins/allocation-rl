@@ -6,36 +6,37 @@ import theano
 
 class Features(object):
 
-    def __init__(self, region, product, temporal, lagged, prices):
+    def __init__(self, region, product, temporal, lagged, prices, time_stamps, y=None):
         self.region = region
         self.product = product
         self.temporal = temporal
         self.lagged = lagged
         self.prices = prices
+        self.time_stamps = time_stamps
+        self.y = y
 
 
+    @classmethod
+    def feature_extraction(cls, df, prices, y_col=None):
+        df['day_of_week'] = df['time'] % 7
 
+        day_features_grouped = df[['time', 'day_of_week']].groupby('time').max()
 
-def feature_extraction(df, prices):
-    df['day_of_week'] = df['time'] % 7
+        region_features = pd.get_dummies(df.region, prefix='region')
+        product_features = pd.get_dummies(df['product'], prefix='product')
+        day_features = pd.get_dummies(day_features_grouped['day_of_week'], prefix='day')
 
-    day_features_grouped = df[['time', 'day_of_week']].groupby('time').max()
+        if y_col is not None:
+            y = df[y_col].values.astype(theano.config.floatX)
+        else:
+            y = None
 
-    region_features = pd.get_dummies(df.region, prefix='region')
-    product_features = pd.get_dummies(df['product'], prefix='product')
-    day_features = pd.get_dummies(day_features_grouped['day_of_week'], prefix='day')
+        features = Features(region=region_features.values.astype(theano.config.floatX),
+                            product=product_features.values.astype(theano.config.floatX),
+                            temporal=day_features.values.astype(theano.config.floatX),
+                            lagged=df['prev_sales'].values.astype(theano.config.floatX),
+                            prices=np.dot(product_features.values, prices).reshape(1, -1),
+                            time_stamps=df['time'].astype(int),
+                            y=y)
 
-    features = {}
-
-    features['region'] = region_features.values.astype(theano.config.floatX)
-    features['product'] = product_features.values.astype(theano.config.floatX)
-    features['temporal'] = day_features.values.astype(theano.config.floatX)
-    features['lagged'] = df['prev_sales'].values.astype(theano.config.floatX)
-    features['prices'] = np.dot(product_features.values, prices).reshape(1, -1)
-
-    return features
-
-
-def get_target(df):
-    y = df['quantity'].values.astype(theano.config.floatX)
-    return y
+        return features

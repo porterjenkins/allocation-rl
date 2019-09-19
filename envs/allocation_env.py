@@ -7,24 +7,30 @@ import json
 from plot import plot_posterior_predictive_check
 from envs.prior import Prior
 import config.config as cfg
-from envs.features import feature_extraction, get_target
+from envs.features import Features
 
 
 class AllocationEnv(object):
     """Environment model for training Reinforcement Learning agent"""
 
-    def __init__(self, config, prior):
+    def __init__(self, config, prior, train_features):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
         self.adj_mtx = config['adj_mtx']
         self.prior = prior
+        self.X_region = theano.shared(train_features.region)
+        self.X_product = theano.shared(train_features.product)
+        self.X_temporal = theano.shared(train_features.temporal)
+        self.X_lagged = theano.shared(train_features.lagged)
+        self.time_stamps = train_features.time_stamps
+        self.y = theano.shared(train_features.y)
         self.model = None
         self.trace = None
 
-    def build_env_model(self, X_region, X_product, X_temporal, X_lagged, time_stamps, y=None):
+    def build_env_model(self):
 
-        num_time_stamps = len(np.unique(time_stamps))
+        num_time_stamps = len(np.unique(self.time_stamps))
 
         with pm.Model() as env_model:
 
@@ -45,14 +51,14 @@ class AllocationEnv(object):
             # Generate temporal weights
             w_t = pm.MvNormal('w_t', mu=self.prior.loc_w_t, cov=self.prior.scale_w_t,
                               shape=self.n_temporal_features)
-            lambda_c_t = pm.math.dot(X_temporal, w_t.T)
+            lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
             c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=num_time_stamps)
 
-            c_all = c_t[time_stamps] * w_c
+            c_all = c_t[self.time_stamps] * w_c
 
-            lambda_q = pm.math.dot(X_region, w_r.T) + pm.math.dot(X_product, w_p.T) + c_all + w_s * X_lagged
+            lambda_q = pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T) + c_all + w_s * self.X_lagged
 
-            q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
+            q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=self.y)
 
         self.model = env_model
 
@@ -62,17 +68,30 @@ class AllocationEnv(object):
         else:
             raise ValueError("environment model has not been built. run build_env_mode()")
 
-    def train(self, samples, tune):
+    def train(self, n_samples, tune):
         self.__check_model()
 
         with self.model:
-            self.trace = pm.sample(samples, tune=tune, init='advi+adapt_diag')
+            self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
 
-    def predict(self):
+
+    def predict(self, features, n_samples):
         self.__check_model()
+
+
+
         with self.model:
-            posterior_pred = pm.sample_posterior_predictive(self.trace)
+            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
         return posterior_pred['quantity_ij']
+
+
+    def __update_features(self, features):
+
+        self.X_region.set_value(features['region'])
+        self.X_product.set_value(features['product'])
+        self.X_temporal.set_value(features['temporal'])
+        self.X_lagged.set_value(features['lagged'])
+        self.time_stamps = features['time_stamps']
 
 
 
@@ -81,18 +100,15 @@ if __name__ == "__main__":
     prior = Prior(config=cfg.vals,
                   fname='prior.json')
     train_data = pd.read_csv('../train-data-simple.csv', index_col=0)
+    test_data = pd.read_csv('../test-data-simple.csv', index_col=0)
 
-    y_train = get_target(train_data)
-    train_features = feature_extraction(train_data, prices=cfg.vals['prices'])
+    train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
+    test_features = Features.feature_extraction(test_data, prices=cfg.vals['prices'])
 
-    X_region = theano.shared(train_features['region'])
-    X_product = theano.shared(train_features['product'])
-    X_temporal = theano.shared(train_features['temporal'])
-    X_lagged = theano.shared(train_features['lagged'])
-    y = theano.shared(y_train)
 
-    env = AllocationEnv(config=cfg.vals, prior=prior)
-    env.build_env_model(X_region, X_product, X_temporal, X_lagged, y=y_train, time_stamps=train_data['time'].astype(int))
-    env.train(samples=100, tune=100)
-    q_ij = env.predict()
+
+    env = AllocationEnv(config=cfg.vals, prior=prior, train_features=train_features)
+    env.build_env_model()
+    env.train(n_samples=100, tune=100)
+    q_ij = env.predict(test_features, 25)
     print(q_ij)

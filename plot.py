@@ -80,7 +80,7 @@ if __name__ == "__main__":
     config['adj_mtx'] = np.eye(config['n_regions'])
     data = pd.read_csv("model-output.csv")
     draws = pd.read_csv('sales-draws.csv',header=None)
-    #plot_total_ppc(data, draws=draws ,y_col='sales')
+    plot_total_ppc(data, draws=draws ,y_col='sales')
     plot_posterior_predictive_check(data, n_product=config['n_products'], n_region=config['n_regions'],
                                     fname='figs/posterior_predictive_check', y_col='sales',
                                     y_hat_col='sales_pred')

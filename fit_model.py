@@ -33,7 +33,7 @@ def get_target(df):
     y = df['quantity'].values.astype(theano.config.floatX)
     return y
 
-with open('config.json') as f:
+with open('config/config.json') as f:
     config = json.load(f)
 config['adj_mtx'] = np.eye(config['n_regions'])
 
@@ -53,7 +53,7 @@ test_features = feature_extraction(test_data)
 y_train = get_target(train_data)
 y_test = get_target(test_data)
 
-def build_env_model(X_region, X_product, X_temporal, X_lagged, y):
+def build_env_model(X_region, X_product, X_temporal, X_lagged, y=None):
 
     with pm.Model() as env_model:
 
@@ -116,14 +116,14 @@ env_model = build_env_model(X_region, X_product, X_temporal, X_lagged, y)
 
 
 with env_model:
-    trace = pm.sample(100, tune=100, init='advi+adapt_diag')
-    posterior_pred = pm.sample_posterior_predictive(trace)
+    trace = pm.sample(1000, tune=1000, init='advi+adapt_diag')
+    posterior_pred_train = pm.sample_posterior_predictive(trace)
     #mean_field = pm.fit(method='advi')
     #posterior_pred = pm.sample_posterior_predictive(mean_field)
 
 
-y_hat = posterior_pred['quantity_ij'].mean(axis=0)
-sales = posterior_pred['quantity_ij'] * train_features['prices']
+y_hat = posterior_pred_train['quantity_ij'].mean(axis=0)
+sales = posterior_pred_train['quantity_ij'] * train_features['prices']
 y_hat_sales = sales.mean(axis=0)
 train_data['sales_pred_upper'] = np.percentile(sales, q=95.0, axis=0)
 train_data['sales_pred_lower'] = np.percentile(sales, q=5.0, axis=0)
@@ -132,16 +132,6 @@ train_data['sales_pred'] = y_hat_sales.flatten()
 
 print(train_data.head())
 
-X_region.set_value(test_features['region'])
-X_product.set_value(test_features['product'])
-X_temporal.set_value(test_features['temporal'])
-X_lagged.set_value(test_features['lagged'])
-y.set_value(y_test)
-
-with env_model:
-    test_ppc = pm.sample_posterior_predictive(trace, samples=50)
-
-print(test_ppc)
 
 err = y-y_hat
 mse = np.mean(np.abs((y_train - y_hat)))
@@ -153,9 +143,7 @@ mse_sales = np.mean(np.abs((train_data.sales.values - y_hat_sales)))
 print("sales mse: {}".format(mse_sales))
 
 
-train_data.to_csv("model-output.csv")
-
-plt.figure(figsize=(7, 7))
+"""plt.figure(figsize=(7, 7))
 pm.traceplot(trace[::10], var_names=['w_s', 'w_p','w_c','w_r'])
 plt.savefig("trace-plot.png")
 plt.clf()
@@ -163,6 +151,39 @@ plt.close()
 
 plt.figure(figsize=(7, 7))
 pm.traceplot(trace[::10], var_names=['w_t'])
-plt.savefig("trace-plot-temporal.png")
+plt.savefig("trace-plot-temporal.png")"""
 
-np.savetxt('sales-draws.csv', sales.transpose()[:, :10], delimiter=',')
+## Test data ##
+
+X_region.set_value(test_features['region'])
+X_product.set_value(test_features['product'])
+X_temporal.set_value(test_features['temporal'])
+X_lagged.set_value(test_features['lagged'])
+#y.set_value(y_test)
+
+with env_model:
+    posterior_pred_test = pm.sample_posterior_predictive(trace, samples=50)
+
+y_hat = posterior_pred_test['quantity_ij'].mean(axis=0)
+sales = posterior_pred_test['quantity_ij'] * train_features['prices']
+y_hat_sales = sales.mean(axis=0)
+test_data['sales_pred_upper'] = np.percentile(sales, q=95.0, axis=0)
+test_data['sales_pred_lower'] = np.percentile(sales, q=5.0, axis=0)
+
+test_data['sales_pred'] = y_hat_sales.flatten()
+
+print(train_data.head())
+err = y_test-y_hat
+mse = np.mean(np.abs((y_test - y_hat)))
+
+print("test mae: {}".format(mse))
+
+
+mse_sales = np.mean(np.abs((test_data.sales.values - y_hat_sales)))
+print("test sales mae: {}".format(mse_sales))
+
+
+np.savetxt('sales-draws.csv', sales.transpose(), delimiter=',')
+
+
+test_data.to_csv("model-output.csv")
