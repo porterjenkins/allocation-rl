@@ -16,7 +16,11 @@ class Features(object):
         self.prices = prices
         self.time_stamps = time_stamps
         self.y = y
-        
+
+
+    def get_mtx(self):
+        feature_mtx = np.concatenate([self.product, self.region, self.temporal, self.lagged], axis=1)
+        return feature_mtx
 
 
     @classmethod
@@ -103,5 +107,3 @@ if __name__ == "__main__":
 
     init_state = State.init_state(config=cfg.vals)
     state_features = Features.featurize_state(init_state)
-
-    stop = 0

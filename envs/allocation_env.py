@@ -106,6 +106,12 @@ class AllocationEnv(object):
         self.state = State.init_state(cfg.vals)
         return self.state
 
+    def _get_state(self):
+        state = Features.featurize_state(self.state).get_mtx()
+        return state
+
+    #def _take_action(self, action ):
+
 
 
 
