@@ -8,7 +8,7 @@ from plot import plot_posterior_predictive_check
 from envs.prior import Prior
 import config.config as cfg
 from envs.features import Features
-
+from envs.state import State
 
 class AllocationEnv(object):
     """Environment model for training Reinforcement Learning agent"""
@@ -28,6 +28,7 @@ class AllocationEnv(object):
         self.prices = train_features.prices
         self.model = None
         self.trace = None
+        self.state = State
 
     def build_env_model(self):
 
@@ -101,6 +102,11 @@ class AllocationEnv(object):
         return sales
 
 
+    def reset(self):
+        self.state = State.init_state(cfg.vals)
+        return self.state
+
+
 
 
 if __name__ == "__main__":
@@ -117,5 +123,6 @@ if __name__ == "__main__":
     env = AllocationEnv(config=cfg.vals, prior=prior, train_features=train_features)
     env.build_env_model()
     env.train(n_samples=100, tune=100)
+    env.reset()
     q_ij = env.predict(test_features, 100)
     print(q_ij.shape)

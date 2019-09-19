@@ -1,6 +1,7 @@
 import numpy as np
 import config.config as cfg
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 class State(object):
     """
@@ -19,6 +20,7 @@ class State(object):
         self.prev_sales = prev_sales
         self._products = np.where(board_config == 1.0)[1]
         self._regions = np.where(board_config == 1.0)[0]
+        self._product_mask = State.get_mask(self._products, cfg.vals['n_products'])
 
     def advance_state(self, a):
         self.day = (self.day + 1) % 7
@@ -27,6 +29,14 @@ class State(object):
 
         self._products = np.where(self.board_config == 1.0)[1]
         self._regions = np.where(self.board_config == 1.0)[0]
+
+    @staticmethod
+    def get_mask(items, n_items):
+        mask = np.zeros(n_items, dtype=np.int32)
+        for i in items:
+            mask[i] = 1
+
+        return mask
 
 
     @classmethod

@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import theano
-
+import config.config as cfg
+from envs.state import State
+from sklearn.preprocessing import OneHotEncoder
 
 
 class Features(object):
@@ -41,3 +43,65 @@ class Features(object):
                             y=y)
 
         return features
+
+    @classmethod
+    def _get_day_features(cls, n_rows, day_idx):
+        day_features = np.zeros((n_rows, cfg.vals['n_temporal_features']))
+        day_features[:, day_idx] = 1.0
+        return day_features
+
+    @classmethod
+    def _get_one_hot_features_multiple_ts(cls, n_rows, items, axis_1_size, strat_dim_size):
+        one_hot_mtx = np.zeros((n_rows, axis_1_size))
+
+        row_cntr = 0
+        item_idx = 0
+
+        while row_cntr < n_rows:
+            col_idx = items[item_idx]
+            one_hot_mtx[row_cntr, col_idx] = 1.0
+            item_idx += 1
+
+            if item_idx == strat_dim_size:
+                item_idx = 0
+
+            row_cntr += 1
+
+        return one_hot_mtx
+
+    @classmethod
+    def _get_one_hot_features_single_ts(cls, items, n_items):
+        encoder = OneHotEncoder(n_values=n_items)
+        one_hot = encoder.fit_transform(items.reshape(-1,1)).toarray()
+        return one_hot
+
+
+    @classmethod
+    def featurize_state(cls, state):
+        # number of unique item/product combinations in board config. Can use length of products from state
+        n_rows = len(state._products)
+
+        time_stamps = np.array([state.day]*n_rows)
+        day_features = Features._get_one_hot_features_single_ts(time_stamps, cfg.vals['n_temporal_features'])
+        product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
+        region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
+        prev_sales = state.prev_sales[state._products]
+        prices = np.array(cfg.vals['prices'])[state._products]
+
+
+        features = Features(temporal=day_features,
+                            product=product_features,
+                            region=region_features,
+                            time_stamps=time_stamps,
+                            lagged=prev_sales,
+                            prices=prices)
+
+        return features
+
+
+if __name__ == "__main__":
+
+    init_state = State.init_state(config=cfg.vals)
+    state_features = Features.featurize_state(init_state)
+
+    stop = 0
