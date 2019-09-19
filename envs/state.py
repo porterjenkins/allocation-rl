@@ -22,10 +22,19 @@ class State(object):
         self._regions = np.where(board_config == 1.0)[0]
         self._product_mask = State.get_mask(self._products, cfg.vals['n_products'])
 
-    def advance_state(self, a):
+    def update_board(self, a):
+        """
+        Update board configuration
+        :param a: (np.ndarray) boolean matrix of action space
+        :return:
+        """
+        # ensure that components of board configuration are in {0,1}
+        self.board_config = np.minimum(self.board_config + a, 1.0)
+
+
+    def advance(self, updated_sales):
         self.day = (self.day + 1) % 7
-        self.board_config = self.board_config + a
-        # TODO: update prev_sales
+        self.prev_sales = updated_sales
 
         self._products = np.where(self.board_config == 1.0)[1]
         self._regions = np.where(self.board_config == 1.0)[0]
@@ -62,3 +71,10 @@ class State(object):
 if __name__ == "__main__":
 
     init_state = State.init_state(config=cfg.vals)
+    a = np.zeros((4,4))
+    a[3,3]= 1.0
+    init_state.update_board(a)
+
+    print(init_state.board_config)
+    init_state.update_board(a)
+    print(init_state.board_config)

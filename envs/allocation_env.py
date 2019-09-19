@@ -29,6 +29,7 @@ class AllocationEnv(object):
         self.model = None
         self.trace = None
         self.state = State
+        self.posterior_samples = 25
 
     def build_env_model(self):
 
@@ -83,7 +84,7 @@ class AllocationEnv(object):
         self.__update_features(features)
         with self.model:
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
-        sales = self.__get_sales(posterior_pred['quantity_ij'])
+        sales = self.__get_sales(posterior_pred['quantity_ij'], prices=features.prices)
         return sales
 
 
@@ -97,8 +98,8 @@ class AllocationEnv(object):
         self.y.set_value(features.y)
 
 
-    def __get_sales(self, q_ij):
-        sales = q_ij * self.prices
+    def __get_sales(self, q_ij, prices):
+        sales = q_ij * prices
         return sales
 
 
@@ -107,10 +108,19 @@ class AllocationEnv(object):
         return self.state
 
     def _get_state(self):
-        state = Features.featurize_state(self.state).get_mtx()
+        state = Features.featurize_state(self.state)
         return state
 
-    #def _take_action(self, action ):
+    def _take_action(self, action):
+        self.state.update_board(action)
+        state_features = Features.featurize_state(self.state)
+        sales_posterior = self.predict(state_features, n_samples=self.posterior_samples)
+        sales_hat = sales_posterior.mean(axis=0)
+        print(sales_hat)
+        self.state.advance(sales_hat)
+
+        return self.state
+
 
 
 
@@ -130,5 +140,7 @@ if __name__ == "__main__":
     env.build_env_model()
     env.train(n_samples=100, tune=100)
     env.reset()
-    q_ij = env.predict(test_features, 100)
-    print(q_ij.shape)
+    a = np.zeros((4, 4))
+    a[3, 3] = 1.0
+    ob = env._take_action(a)
+    print(ob)

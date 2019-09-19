@@ -90,7 +90,10 @@ class Features(object):
         product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
         region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
         prev_sales = state.prev_sales[state._products]
+        if prev_sales.ndim == 2:
+            prev_sales = prev_sales.flatten()
         prices = np.array(cfg.vals['prices'])[state._products]
+        y = np.ones(n_rows).astype(theano.config.floatX)
 
 
         features = Features(temporal=day_features,
@@ -98,7 +101,8 @@ class Features(object):
                             region=region_features,
                             time_stamps=time_stamps,
                             lagged=prev_sales,
-                            prices=prices)
+                            prices=prices,
+                            y=y)
 
         return features
 
@@ -107,3 +111,5 @@ if __name__ == "__main__":
 
     init_state = State.init_state(config=cfg.vals)
     state_features = Features.featurize_state(init_state)
+
+    stop = 0
