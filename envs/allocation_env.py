@@ -23,14 +23,15 @@ class AllocationEnv(object):
         self.X_product = theano.shared(train_features.product)
         self.X_temporal = theano.shared(train_features.temporal)
         self.X_lagged = theano.shared(train_features.lagged)
-        self.time_stamps = train_features.time_stamps
+        self.time_stamps = theano.shared(train_features.time_stamps)
+        self.n_time_stamps = train_features.n_time_stamps
         self.y = theano.shared(train_features.y)
+        self.prices = train_features.prices
         self.model = None
         self.trace = None
 
     def build_env_model(self):
 
-        num_time_stamps = len(np.unique(self.time_stamps))
 
         with pm.Model() as env_model:
 
@@ -52,7 +53,7 @@ class AllocationEnv(object):
             w_t = pm.MvNormal('w_t', mu=self.prior.loc_w_t, cov=self.prior.scale_w_t,
                               shape=self.n_temporal_features)
             lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
-            c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=num_time_stamps)
+            c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=self.n_time_stamps)
 
             c_all = c_t[self.time_stamps] * w_c
 
@@ -73,13 +74,14 @@ class AllocationEnv(object):
 
         with self.model:
             self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
+            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
+        print(posterior_pred['quantity_ij'].shape)
 
 
     def predict(self, features, n_samples):
         self.__check_model()
 
-
-
+        self.__update_features(features)
         with self.model:
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
         return posterior_pred['quantity_ij']
@@ -87,11 +89,17 @@ class AllocationEnv(object):
 
     def __update_features(self, features):
 
-        self.X_region.set_value(features['region'])
-        self.X_product.set_value(features['product'])
-        self.X_temporal.set_value(features['temporal'])
-        self.X_lagged.set_value(features['lagged'])
-        self.time_stamps = features['time_stamps']
+        self.X_region.set_value(features.region)
+        self.X_product.set_value(features.product)
+        self.X_temporal.set_value(features.temporal)
+        self.X_lagged.set_value(features.lagged)
+        self.time_stamps.set_value(features.time_stamps)
+        self.y.set_value(features.y)
+        self.n_time_stamps = features.n_time_stamps
+
+    def __get_sales(self, q_ij):
+        sales = q_ij * self.prices
+        return sales
 
 
 
@@ -100,7 +108,7 @@ if __name__ == "__main__":
     prior = Prior(config=cfg.vals,
                   fname='prior.json')
     train_data = pd.read_csv('../train-data-simple.csv', index_col=0)
-    test_data = pd.read_csv('../test-data-simple.csv', index_col=0)
+    test_data = pd.read_csv('../test-data-simple.csv', index_col=0, nrows=16)
 
     train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
     test_features = Features.feature_extraction(test_data, prices=cfg.vals['prices'])
@@ -110,5 +118,5 @@ if __name__ == "__main__":
     env = AllocationEnv(config=cfg.vals, prior=prior, train_features=train_features)
     env.build_env_model()
     env.train(n_samples=100, tune=100)
-    q_ij = env.predict(test_features, 25)
-    print(q_ij)
+    q_ij = env.predict(test_features, 100)
+    print(q_ij.shape)

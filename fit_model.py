@@ -8,7 +8,7 @@ import json
 from plot import plot_posterior_predictive_check
 
 train_data = pd.read_csv('train-data-simple.csv', index_col=0)
-test_data = pd.read_csv('test-data-simple.csv', index_col=0)
+test_data = pd.read_csv('test-data-simple.csv', index_col=0,nrows=16)
 
 def feature_extraction(df):
     df['day_of_week'] = df['time'] % 7
@@ -116,7 +116,7 @@ env_model = build_env_model(X_region, X_product, X_temporal, X_lagged, y)
 
 
 with env_model:
-    trace = pm.sample(1000, tune=1000, init='advi+adapt_diag')
+    trace = pm.sample(100, tune=100, init='advi+adapt_diag')
     posterior_pred_train = pm.sample_posterior_predictive(trace)
     #mean_field = pm.fit(method='advi')
     #posterior_pred = pm.sample_posterior_predictive(mean_field)

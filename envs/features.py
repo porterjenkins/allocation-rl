@@ -6,14 +6,16 @@ import theano
 
 class Features(object):
 
-    def __init__(self, region, product, temporal, lagged, prices, time_stamps, y=None):
+    def __init__(self, region, product, temporal, lagged, prices, time_stamps, n_time_stamps, y=None):
         self.region = region
         self.product = product
         self.temporal = temporal
         self.lagged = lagged
         self.prices = prices
         self.time_stamps = time_stamps
+        self.n_time_stamps = n_time_stamps
         self.y = y
+        
 
 
     @classmethod
@@ -29,14 +31,15 @@ class Features(object):
         if y_col is not None:
             y = df[y_col].values.astype(theano.config.floatX)
         else:
-            y = None
+            y = np.ones(df.shape[0]).astype(theano.config.floatX)
 
         features = Features(region=region_features.values.astype(theano.config.floatX),
                             product=product_features.values.astype(theano.config.floatX),
                             temporal=day_features.values.astype(theano.config.floatX),
                             lagged=df['prev_sales'].values.astype(theano.config.floatX),
                             prices=np.dot(product_features.values, prices).reshape(1, -1),
-                            time_stamps=df['time'].astype(int),
+                            time_stamps=df['time'].values.astype(int),
+                            n_time_stamps=len(np.unique(df['time'])),
                             y=y)
 
         return features
