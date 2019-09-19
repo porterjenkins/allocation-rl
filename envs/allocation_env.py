@@ -74,7 +74,6 @@ class AllocationEnv(object):
         with self.model:
             self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
-        print(posterior_pred['quantity_ij'].shape)
 
 
     def predict(self, features, n_samples):
@@ -83,7 +82,8 @@ class AllocationEnv(object):
         self.__update_features(features)
         with self.model:
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
-        return posterior_pred['quantity_ij']
+        sales = self.__get_sales(posterior_pred['quantity_ij'])
+        return sales
 
 
     def __update_features(self, features):
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     prior = Prior(config=cfg.vals,
                   fname='prior.json')
     train_data = pd.read_csv('../train-data-simple.csv', index_col=0)
-    test_data = pd.read_csv('../test-data-simple.csv', index_col=0, nrows=16)
+    test_data = pd.read_csv('../test-data-simple.csv', index_col=0)
 
     train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
     test_features = Features.feature_extraction(test_data, prices=cfg.vals['prices'])
