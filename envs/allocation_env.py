@@ -48,7 +48,7 @@ class AllocationEnv(gym.Env):
 
         # todo modify the action space and observation space
         self.action_space = spaces.MultiDiscrete([self.n_regions, self.n_products, 2])
-        self.observation_space = spaces.Box(low=-2, high=2, shape=observation_shape)
+        self.observation_space = spaces.Box(low=0, high=2, shape=(observation_shape[1],))
 
 
 
