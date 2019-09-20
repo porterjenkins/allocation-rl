@@ -209,10 +209,9 @@ class AllocationEnv(gym.Env):
         self.y = theano.shared(train_features.y)
         self.prices = train_features.prices
 
-
-        # todo load data and model here
         self.init_features = State.init_state(cfg.vals)
         self.init_state_dimension = None  # to be implemented
+        self.init_state_len =  Features.featurize_state(self.init_features).toarray().shape[1]
         self.env_model = self.build_env_model()  # to be implemented
 
         if train:
