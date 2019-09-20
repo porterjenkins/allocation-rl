@@ -18,8 +18,10 @@ class Features(object):
         self.y = y
 
 
-    def get_mtx(self):
-        feature_mtx = np.concatenate([self.product, self.region, self.temporal, self.lagged], axis=1)
+    def toarray(self):
+        features = [self.product, self.region, self.temporal, self.lagged.reshape(-1,1)]
+
+        feature_mtx = np.concatenate(features, axis=1)
         return feature_mtx
 
 
@@ -55,6 +57,11 @@ class Features(object):
         return day_features
 
     @classmethod
+    def _get_lagged_features(cls, prev_sales, items):
+        prev_sales = np.array([prev_sales[i] for i in items])
+        return prev_sales
+
+    @classmethod
     def _get_one_hot_features_multiple_ts(cls, n_rows, items, axis_1_size, strat_dim_size):
         one_hot_mtx = np.zeros((n_rows, axis_1_size))
 
@@ -75,7 +82,7 @@ class Features(object):
 
     @classmethod
     def _get_one_hot_features_single_ts(cls, items, n_items):
-        encoder = OneHotEncoder(n_values=n_items)
+        encoder = OneHotEncoder(categories=[range(n_items)])
         one_hot = encoder.fit_transform(items.reshape(-1,1)).toarray()
         return one_hot
 
@@ -89,10 +96,8 @@ class Features(object):
         day_features = Features._get_one_hot_features_single_ts(time_stamps, cfg.vals['n_temporal_features'])
         product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
         region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
-        prev_sales = state.prev_sales[state._products]
-        if prev_sales.ndim == 2:
-            prev_sales = prev_sales.flatten()
         prices = np.array(cfg.vals['prices'])[state._products]
+        prev_sales = Features._get_lagged_features(state.prev_sales, state._items)
         y = np.ones(n_rows).astype(theano.config.floatX)
 
 

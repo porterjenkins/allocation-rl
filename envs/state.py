@@ -20,7 +20,9 @@ class State(object):
         self.prev_sales = prev_sales
         self._products = np.where(board_config == 1.0)[1]
         self._regions = np.where(board_config == 1.0)[0]
+        self._items = list(zip(self._regions, self._products))
         self._product_mask = State.get_mask(self._products, cfg.vals['n_products'])
+        self.curr_sales = None
 
     def update_board(self, a):
         """
@@ -28,16 +30,32 @@ class State(object):
         :param a: (np.ndarray) boolean matrix of action space
         :return:
         """
+
         # ensure that components of board configuration are in {0,1}
         self.board_config = np.minimum(self.board_config + a, 1.0)
 
-
-    def advance(self, updated_sales):
-        self.day = (self.day + 1) % 7
-        self.prev_sales = updated_sales
-
         self._products = np.where(self.board_config == 1.0)[1]
         self._regions = np.where(self.board_config == 1.0)[0]
+        self._items = list(zip(self._regions, self._products))
+
+
+    def advance(self, sales_hat):
+        self.day = (self.day + 1) % 7
+        prev_sales_map = dict(zip(self._items, sales_hat))
+        self.update_sales(prev_sales_map)
+
+        ## TODO: Need better way to update and maintain previous sales
+
+
+
+
+
+    def update_sales(self, sales_map):
+        sales_mtx = np.zeros((cfg.vals['n_regions'], cfg.vals['n_products']))
+        for idx, val in sales_map.items():
+            sales_mtx[idx] = val
+        self.prev_sales = sales_mtx
+
 
     @staticmethod
     def get_mask(items, n_items):
@@ -50,9 +68,9 @@ class State(object):
 
     @classmethod
     def __init_prev_sales_means(cls, df):
-        prod_means = df[['product', 'sales']].groupby('product').mean()
-        return prod_means.values
-
+        means = df[['product', 'region', 'sales']].groupby(['region', 'product']).mean()
+        means_mtx = means.values.reshape(cfg.vals['n_regions'], cfg.vals['n_products'])
+        return means_mtx
     @classmethod
     def init_state(cls, config):
         if "prev_sales" not in config:
@@ -65,6 +83,8 @@ class State(object):
                       board_config=config['env_init_loc'],
                       prev_sales=prev_sales)
 
+
+
         return state
 
 
@@ -72,7 +92,7 @@ if __name__ == "__main__":
 
     init_state = State.init_state(config=cfg.vals)
     a = np.zeros((4,4))
-    a[3,3]= 1.0
+    a[3,3] = 1.0
     init_state.update_board(a)
 
     print(init_state.board_config)

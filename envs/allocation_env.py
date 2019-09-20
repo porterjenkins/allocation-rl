@@ -30,6 +30,7 @@ class AllocationEnv(object):
         self.trace = None
         self.state = State
         self.posterior_samples = 25
+        self.sales = []
 
     def build_env_model(self):
 
@@ -95,7 +96,6 @@ class AllocationEnv(object):
         self.X_temporal.set_value(features.temporal)
         self.X_lagged.set_value(features.lagged)
         self.time_stamps.set_value(features.time_stamps)
-        self.y.set_value(features.y)
 
 
     def __get_sales(self, q_ij, prices):
@@ -108,18 +108,21 @@ class AllocationEnv(object):
         return self.state
 
     def _get_state(self):
-        state = Features.featurize_state(self.state)
+        state = Features.featurize_state(self.state).toarray()
         return state
+
+    def _get_reward(self):
+        r = self.state.prev_sales.sum()
+        return r
 
     def _take_action(self, action):
         self.state.update_board(action)
         state_features = Features.featurize_state(self.state)
         sales_posterior = self.predict(state_features, n_samples=self.posterior_samples)
         sales_hat = sales_posterior.mean(axis=0)
-        print(sales_hat)
         self.state.advance(sales_hat)
 
-        return self.state
+        return self._get_state()
 
 
 
@@ -143,4 +146,9 @@ if __name__ == "__main__":
     a = np.zeros((4, 4))
     a[3, 3] = 1.0
     ob = env._take_action(a)
-    print(ob)
+    print(env._get_reward())
+
+    a = np.zeros((4, 4))
+    a[3, 0] = 1.0
+    ob = env._take_action(a)
+    print("reward: {}".format(env._get_reward()))
