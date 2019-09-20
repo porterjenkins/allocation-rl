@@ -9,28 +9,78 @@ from envs.prior import Prior
 import config.config as cfg
 from envs.features import Features
 from envs.state import State
+import gym
+from gym import error, spaces, utils
+from gym.utils import seeding
+from sklearn import metrics
+from itertools import cycle, islice
 
-class AllocationEnv(object):
+
+class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
+    metadata = {'render.modes': ['allocation'],
+                'max_cnt_reward_not_reduce_round': 100}
 
-    def __init__(self, config, prior, train_features):
+    def __init__(self, config, prior, data_model_path):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
         self.adj_mtx = config['adj_mtx']
+
+        self._load_data(data_model_path)
+
+        self.feature_shape = self.init_features.shape
+        self.sample_index = np.arange(self.feature_shape[0])
+
+        self.cnt_reward_not_reduce_round = 0
+        self.max_cnt_reward_not_reduce_round = self.metadata['max_cnt_reward_not_reduce_round']
+
+        observation_shape = list(self.feature_shape)
+        observation_shape[-1] = observation_shape[-1] + 1
+        observation_shape = tuple(observation_shape)
+
+        # todo modify the action space and observation space
+        self.action_space = spaces.MultiDiscrete([self.n_regions, self.n_products, 2])
+        self.observation_space = spaces.Box(low=-2, high=2, shape=observation_shape)
+
+        self.seed()
+        self.viewer = None
+        self.state = None  # System state
+
         self.prior = prior
-        self.X_region = theano.shared(train_features.region)
-        self.X_product = theano.shared(train_features.product)
-        self.X_temporal = theano.shared(train_features.temporal)
-        self.X_lagged = theano.shared(train_features.lagged)
-        self.time_stamps = theano.shared(train_features.time_stamps)
-        self.y = theano.shared(train_features.y)
-        self.prices = train_features.prices
-        self.model = None
+        self.env_model = None
         self.trace = None
         self.state = State
         self.posterior_samples = 25
         self.sales = []
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
+    def step(self, action):
+        '''
+        take one simulation step given action
+        :param action: tuple, action to take
+        :return:
+                ob: np.array, agent observation
+                reward: float, reward of the passed action
+                episode_over: boolean, indicates whether it is the episode end
+                info: additional info for the
+        '''
+        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+
+        self._take_action(action)
+
+        reward = self._get_reward()
+
+        ob = self._get_state()
+
+        episode_over = self._check_episode_over(reward)
+
+        info = {}
+        return ob, reward, episode_over, info
+
 
     def build_env_model(self):
 
@@ -63,10 +113,10 @@ class AllocationEnv(object):
 
             q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=self.y)
 
-        self.model = env_model
+        return env_model
 
     def __check_model(self):
-        if self.model is not None:
+        if self.env_model is not None:
             return None
         else:
             raise ValueError("environment model has not been built. run build_env_mode()")
@@ -74,7 +124,7 @@ class AllocationEnv(object):
     def train(self, n_samples, tune):
         self.__check_model()
 
-        with self.model:
+        with self.env_model:
             self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
 
@@ -83,7 +133,7 @@ class AllocationEnv(object):
         self.__check_model()
 
         self.__update_features(features)
-        with self.model:
+        with self.env_model:
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
         sales = self.__get_sales(posterior_pred['quantity_ij'], prices=features.prices)
         return sales
@@ -104,8 +154,31 @@ class AllocationEnv(object):
 
 
     def reset(self):
-        self.state = State.init_state(cfg.vals)
+        self.state = self.init_features
+        self.cnt_reward_not_reduce_round = 0
+        self.viewer = None
+
         return self.state
+
+    def render(self, action, mode='allocation'):
+        raise NotImplementedError
+
+    def close(self):
+        if self.viewer:
+            self.viewer.close()
+            self.viewer = None
+
+    def _check_episode_over(self, reward):
+        '''
+        The episode end is to be decided
+        :param reward:
+        :return:
+        '''
+        self.cnt_reward_not_reduce_round += 1
+        if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
+            return True
+        else:
+            return False
 
     def _get_state(self):
         state = Features.featurize_state(self.state).toarray()
@@ -124,6 +197,27 @@ class AllocationEnv(object):
 
         return self._get_state()
 
+    def _load_data(self, file_path, train=True):
+        train_data = pd.read_csv(file_path, index_col=0)
+        train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
+
+        self.X_region = theano.shared(train_features.region)
+        self.X_product = theano.shared(train_features.product)
+        self.X_temporal = theano.shared(train_features.temporal)
+        self.X_lagged = theano.shared(train_features.lagged)
+        self.time_stamps = theano.shared(train_features.time_stamps)
+        self.y = theano.shared(train_features.y)
+        self.prices = train_features.prices
+
+
+        # todo load data and model here
+        self.init_features = State.init_state(cfg.vals)
+        self.init_state_dimension = None  # to be implemented
+        self.env_model = self.build_env_model()  # to be implemented
+
+        if train:
+            self.env_model.train(n_samples=100, tune=100)
+
 
 
 
@@ -131,18 +225,10 @@ class AllocationEnv(object):
 if __name__ == "__main__":
     prior = Prior(config=cfg.vals,
                   fname='prior.json')
-    train_data = pd.read_csv('../train-data-simple.csv', index_col=0)
-    test_data = pd.read_csv('../test-data-simple.csv', index_col=0)
-
-    train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
-    test_features = Features.feature_extraction(test_data, prices=cfg.vals['prices'])
 
 
+    env = AllocationEnv(config=cfg.vals,prior=prior,data_model_path='../train-data-simple.csv')
 
-    env = AllocationEnv(config=cfg.vals, prior=prior, train_features=train_features)
-    env.build_env_model()
-    env.train(n_samples=100, tune=100)
-    env.reset()
     a = np.zeros((4, 4))
     a[3, 3] = 1.0
     ob = env._take_action(a)

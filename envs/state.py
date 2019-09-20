@@ -44,8 +44,6 @@ class State(object):
         prev_sales_map = dict(zip(self._items, sales_hat))
         self.update_sales(prev_sales_map)
 
-        ## TODO: Need better way to update and maintain previous sales
-
 
 
 
