@@ -14,6 +14,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 from sklearn import metrics
 from itertools import cycle, islice
+import pickle
 
 
 class AllocationEnv(gym.Env):
@@ -35,7 +36,7 @@ class AllocationEnv(gym.Env):
         self.viewer = None
         self.state = State.init_state(cfg.vals)
 
-        self._load_data(data_model_path)
+        self._load_data(data_model_path, config['train'])
         self.sample_index = np.arange(self.feature_shape[0])
 
         self.cnt_reward_not_reduce_round = 0
@@ -218,6 +219,15 @@ class AllocationEnv(gym.Env):
 
         if train:
             self.train(n_samples=100, tune=100)
+            with open('model.pkl', 'wb') as buff:
+                pickle.dump({'model': self.env_model, 'trace': self.trace}, buff)
+
+        else:
+            with open('model.pkl', 'rb') as buff:
+                data = pickle.load(buff)
+
+            self.env_model = data['model']
+            self.trace = data['trace']
 
 
 

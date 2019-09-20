@@ -1,4 +1,5 @@
 {
+    "train": false,
     "n_regions": 4,
     "n_products": 4,
     "max_t": 25,
