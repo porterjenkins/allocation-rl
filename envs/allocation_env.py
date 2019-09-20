@@ -26,10 +26,16 @@ class AllocationEnv(gym.Env):
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
         self.adj_mtx = config['adj_mtx']
+        self.prior = prior
+        self.env_model = None
+        self.trace = None
+        self.posterior_samples = 25
+        self.sales = []
+        self.seed()
+        self.viewer = None
+        self.state = State.init_state(cfg.vals)
 
         self._load_data(data_model_path)
-
-        self.feature_shape = self.init_features.shape
         self.sample_index = np.arange(self.feature_shape[0])
 
         self.cnt_reward_not_reduce_round = 0
@@ -43,16 +49,10 @@ class AllocationEnv(gym.Env):
         self.action_space = spaces.MultiDiscrete([self.n_regions, self.n_products, 2])
         self.observation_space = spaces.Box(low=-2, high=2, shape=observation_shape)
 
-        self.seed()
-        self.viewer = None
-        self.state = None  # System state
 
-        self.prior = prior
-        self.env_model = None
-        self.trace = None
-        self.state = State
-        self.posterior_samples = 25
-        self.sales = []
+
+
+
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -189,7 +189,7 @@ class AllocationEnv(gym.Env):
         return r
 
     def _take_action(self, action):
-        self.state.update_board(action)
+        self.state.update_board(a=action)
         state_features = Features.featurize_state(self.state)
         sales_posterior = self.predict(state_features, n_samples=self.posterior_samples)
         sales_hat = sales_posterior.mean(axis=0)
@@ -210,12 +210,14 @@ class AllocationEnv(gym.Env):
         self.prices = train_features.prices
 
         self.init_features = State.init_state(cfg.vals)
-        self.init_state_dimension = None  # to be implemented
-        self.init_state_len =  Features.featurize_state(self.init_features).toarray().shape[1]
+        init_state = Features.featurize_state(self.init_features).toarray()
+        self.init_state_len = init_state.shape[1]
+        self.feature_shape = init_state.shape
+        self.init_state_dimension = len(self.feature_shape)
         self.env_model = self.build_env_model()  # to be implemented
 
         if train:
-            self.env_model.train(n_samples=100, tune=100)
+            self.train(n_samples=100, tune=100)
 
 
 
