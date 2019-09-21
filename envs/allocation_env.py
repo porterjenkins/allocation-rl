@@ -10,11 +10,50 @@ import config.config as cfg
 from envs.features import Features
 from envs.state import State
 import gym
+from gym import Space
 from gym import error, spaces, utils
 from gym.utils import seeding
 from sklearn import metrics
 from itertools import cycle, islice
 import pickle
+
+class AllicationObservationSpace(Space):
+    """
+    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0.38867918]
+
+    """
+
+    def __init__(self, size):
+        assert isinstance(size, int) and size > 0
+        self.size = size
+        super(Space, self).__init__()
+
+    def sample(self):
+        """
+        Generates a single random sample .
+        In creating a sample o, each coordinate is sampled according to
+        the form of the interval:
+        """
+        return np.append(gym.spaces.MultiBinary(self.size-1).sample(),
+               gym.spaces.Box(low=0, high=np.inf, shape=(1,)).sample())
+
+    def contains(self, x):
+        if isinstance(x, list):
+            x = np.array(x)  # Promote list to array for contains check
+        if x.shape[0] == self.size:
+            if gym.spaces.MultiBinary(self.size-1).contains(x[:-1]) and \
+                    gym.spaces.Box(low=0, high=np.inf, shape=(1,)).contains(x[-1:]):
+                return True
+            else:
+                False
+        else:
+            return False
+
+    def __repr__(self):
+        return "AllicationObservationSpace({})".format(self.size)
+
+    def __eq__(self, other):
+        return self.size == other.size
 
 
 class AllocationEnv(gym.Env):
@@ -34,7 +73,7 @@ class AllocationEnv(gym.Env):
         self.sales = []
         self.seed()
         self.viewer = None
-        self.state = State.init_state(cfg.vals)
+        self.state = None
 
         self._load_data(data_model_path, config['train'])
         self.sample_index = np.arange(self.feature_shape[0])
@@ -47,12 +86,8 @@ class AllocationEnv(gym.Env):
         observation_shape = tuple(observation_shape)
 
         # todo modify the action space and observation space
-        self.action_space = spaces.MultiDiscrete([self.n_regions, self.n_products, 2])
-        self.observation_space = spaces.Box(low=0, high=2, shape=(observation_shape[1],))
-
-
-
-
+        self.action_space = spaces.Box(low=0, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
+        self.observation_space = AllicationObservationSpace(observation_shape[-1])
 
 
     def seed(self, seed=None):
@@ -155,11 +190,11 @@ class AllocationEnv(gym.Env):
 
 
     def reset(self):
-        self.state = self.init_features
+        self.state = self.init_state
         self.cnt_reward_not_reduce_round = 0
         self.viewer = None
 
-        return self.state
+        return self._get_state()
 
     def render(self, action, mode='allocation'):
         raise NotImplementedError
@@ -210,12 +245,13 @@ class AllocationEnv(gym.Env):
         self.y = theano.shared(train_features.y)
         self.prices = train_features.prices
 
-        self.init_features = State.init_state(cfg.vals)
-        init_state = Features.featurize_state(self.init_features).toarray()
-        self.init_state_len = init_state.shape[1]
-        self.feature_shape = init_state.shape
+        self.init_state = State.init_state(cfg.vals)
+        init_features = Features.featurize_state(self.init_state).toarray()
+        self.init_state_len = init_features.shape[1]
+        self.feature_shape = init_features.shape
+
         self.init_state_dimension = len(self.feature_shape)
-        self.env_model = self.build_env_model()  # to be implemented
+        self.env_model = self.build_env_model() # todo why is it to be trained here?
 
         if train:
             self.train(n_samples=100, tune=100)
@@ -242,10 +278,7 @@ if __name__ == "__main__":
 
     a = np.zeros((4, 4))
     a[3, 3] = 1.0
-    ob = env._take_action(a)
-    print(env._get_reward())
+    state = env.reset()
+    ob, reward, epsode_over, info = env.step(a)
+    print(ob)
 
-    a = np.zeros((4, 4))
-    a[3, 0] = 1.0
-    ob = env._take_action(a)
-    print("reward: {}".format(env._get_reward()))
