@@ -1,10 +1,13 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from envs.prior import Prior
 import config.config as cfg
 from envs.allocation_env import AllocationEnv
-import sys
 
-BURN_IN = sys.argv[1]
-N_SAMPLES = sys.argv[2]
+
+BURN_IN = int(sys.argv[1])
+N_SAMPLES = int(sys.argv[2])
 LOAD_MODEL = False
 
 prior = Prior(config=cfg.vals,

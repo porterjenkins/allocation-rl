@@ -162,7 +162,7 @@ class AllocationEnv(gym.Env):
 
     def train(self, n_samples, tune, fname='model.trace'):
         self.__check_model()
-
+        print("Beginning training job - samples: {}".format(n_samples))
         with self.env_model:
             self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
