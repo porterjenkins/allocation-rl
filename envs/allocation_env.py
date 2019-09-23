@@ -119,7 +119,7 @@ class AllocationEnv(gym.Env):
         return ob, reward, episode_over, info
 
 
-    def build_env_model(self):
+    def _build_env_model(self):
         ts = datetime.datetime.now()
         print("Building environment model: {}".format(ts))
 
@@ -171,7 +171,7 @@ class AllocationEnv(gym.Env):
         return posterior_pred
 
 
-    def predict(self, features, n_samples):
+    def _predict(self, features, n_samples):
         self.__check_model()
 
         self.__update_features(features)
@@ -232,7 +232,7 @@ class AllocationEnv(gym.Env):
     def _take_action(self, action):
         self.state.update_board(a=action)
         state_features = Features.featurize_state(self.state)
-        sales_posterior = self.predict(state_features, n_samples=self.posterior_samples)
+        sales_posterior = self._predict(state_features, n_samples=self.posterior_samples)
         sales_hat = sales_posterior.mean(axis=0)
         self.state.advance(sales_hat)
 
@@ -256,7 +256,7 @@ class AllocationEnv(gym.Env):
         self.feature_shape = init_features.shape
 
         self.init_state_dimension = len(self.feature_shape)
-        self.env_model = self.build_env_model()
+        self.env_model = self._build_env_model()
 
         if load_model:
             with self.env_model:
