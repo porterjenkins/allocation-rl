@@ -223,8 +223,7 @@ class AllocationEnv(gym.Env):
             return False
 
     def _get_state(self):
-        state = Features.featurize_state(self.state).toarray()
-        return state
+        return self.state
 
     def _get_reward(self):
         r = self.state.prev_sales.sum()
