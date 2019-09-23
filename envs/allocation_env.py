@@ -62,7 +62,7 @@ class AllocationEnv(gym.Env):
     metadata = {'render.modes': ['allocation'],
                 'max_cnt_reward_not_reduce_round': 100}
 
-    def __init__(self, config, prior, data_model_path, train=False):
+    def __init__(self, config, prior, load_model=True):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
@@ -76,7 +76,7 @@ class AllocationEnv(gym.Env):
         self.viewer = None
         self.state = None
 
-        self._load_data(data_model_path, train)
+        self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
 
         self.cnt_reward_not_reduce_round = 0
@@ -160,12 +160,15 @@ class AllocationEnv(gym.Env):
         else:
             raise ValueError("environment model has not been built. run build_env_mode()")
 
-    def train(self, n_samples, tune):
+    def train(self, n_samples, tune, fname='model.trace'):
         self.__check_model()
 
         with self.env_model:
             self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
+        pm.save_trace(self.trace, directory=fname, overwrite=True)
+
+        return posterior_pred
 
 
     def predict(self, features, n_samples):
@@ -236,8 +239,8 @@ class AllocationEnv(gym.Env):
 
         return self._get_state()
 
-    def _load_data(self, file_path, train=True):
-        train_data = pd.read_csv(file_path, index_col=0)
+    def _load_data(self, model_path, train_data_path, load_model):
+        train_data = pd.read_csv(train_data_path, index_col=0)
         train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
 
         self.X_region = theano.shared(train_features.region)
@@ -256,14 +259,9 @@ class AllocationEnv(gym.Env):
         self.init_state_dimension = len(self.feature_shape)
         self.env_model = self.build_env_model()
 
-        if train:
-
-            self.train(n_samples=100, tune=100)
-            pm.save_trace(self.trace, directory='model.trace')
-
-        else:
+        if load_model:
             with self.env_model:
-                self.trace = pm.load_trace('model.trace')
+                self.trace = pm.load_trace(model_path)
             ts = datetime.datetime.now()
             print("Environment model read from disk: {}".format(ts))
 
@@ -277,7 +275,7 @@ if __name__ == "__main__":
                   fname='prior.json')
 
 
-    env = AllocationEnv(config=cfg.vals,prior=prior,data_model_path='../train-data-simple.csv')
+    env = AllocationEnv(config=cfg.vals,prior=prior)
 
     a = np.zeros((4, 4))
     a[3, 3] = 1.0
