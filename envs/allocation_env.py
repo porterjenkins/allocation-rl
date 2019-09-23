@@ -13,11 +13,12 @@ import gym
 from gym import Space
 from gym import error, spaces, utils
 from gym.utils import seeding
+import datetime
 from sklearn import metrics
 from itertools import cycle, islice
 import pickle
 
-class AllicationObservationSpace(Space):
+class AllocationObservationSpace(Space):
     """
     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0.38867918]
 
@@ -50,7 +51,7 @@ class AllicationObservationSpace(Space):
             return False
 
     def __repr__(self):
-        return "AllicationObservationSpace({})".format(self.size)
+        return "AllocationObservationSpace({})".format(self.size)
 
     def __eq__(self, other):
         return self.size == other.size
@@ -61,7 +62,7 @@ class AllocationEnv(gym.Env):
     metadata = {'render.modes': ['allocation'],
                 'max_cnt_reward_not_reduce_round': 100}
 
-    def __init__(self, config, prior, data_model_path):
+    def __init__(self, config, prior, data_model_path, train=False):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
@@ -75,7 +76,7 @@ class AllocationEnv(gym.Env):
         self.viewer = None
         self.state = None
 
-        self._load_data(data_model_path, config['train'])
+        self._load_data(data_model_path, train)
         self.sample_index = np.arange(self.feature_shape[0])
 
         self.cnt_reward_not_reduce_round = 0
@@ -87,7 +88,7 @@ class AllocationEnv(gym.Env):
 
         # todo modify the action space and observation space
         self.action_space = spaces.Box(low=0, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
-        self.observation_space = AllicationObservationSpace(observation_shape[-1])
+        self.observation_space = AllocationObservationSpace(observation_shape[-1])
 
 
     def seed(self, seed=None):
@@ -119,6 +120,8 @@ class AllocationEnv(gym.Env):
 
 
     def build_env_model(self):
+        ts = datetime.datetime.now()
+        print("Building environment model: {}".format(ts))
 
 
         with pm.Model() as env_model:
@@ -251,19 +254,19 @@ class AllocationEnv(gym.Env):
         self.feature_shape = init_features.shape
 
         self.init_state_dimension = len(self.feature_shape)
-        self.env_model = self.build_env_model() # todo why is it to be trained here?
+        self.env_model = self.build_env_model()
 
         if train:
+
             self.train(n_samples=100, tune=100)
-            with open('model.pkl', 'wb') as buff:
-                pickle.dump({'model': self.env_model, 'trace': self.trace}, buff)
+            pm.save_trace(self.trace, directory='model.trace')
 
         else:
-            with open('model.pkl', 'rb') as buff:
-                data = pickle.load(buff)
+            with self.env_model:
+                self.trace = pm.load_trace('model.trace')
+            ts = datetime.datetime.now()
+            print("Environment model read from disk: {}".format(ts))
 
-            self.env_model = data['model']
-            self.trace = data['trace']
 
 
 
