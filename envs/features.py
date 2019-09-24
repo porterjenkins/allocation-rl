@@ -8,13 +8,14 @@ from sklearn.preprocessing import OneHotEncoder
 
 class Features(object):
 
-    def __init__(self, region, product, temporal, lagged, prices, time_stamps, y=None):
+    def __init__(self, region, product, temporal, lagged, prices, time_stamps, product_idx, y=None):
         self.region = region
         self.product = product
         self.temporal = temporal
         self.lagged = lagged
         self.prices = prices
         self.time_stamps = time_stamps
+        self.product_idx = product_idx
         self.y = y
 
 
@@ -46,6 +47,7 @@ class Features(object):
                             lagged=df['prev_sales'].values.astype(theano.config.floatX),
                             prices=np.dot(product_features.values, prices).reshape(1, -1),
                             time_stamps=df['time'].values.astype(int),
+                            product_idx=df['product'].values.astype(int),
                             y=y)
 
         return features
@@ -107,6 +109,7 @@ class Features(object):
                             time_stamps=time_stamps,
                             lagged=prev_sales,
                             prices=prices,
+                            product_idx=state._products.flatten(),
                             y=y)
 
         return features

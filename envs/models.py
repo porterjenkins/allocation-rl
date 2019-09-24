@@ -60,8 +60,11 @@ class LinearModel(Model):
 
 class HierarchicalModel(Model):
 
-    def __init__(self):
-        super(Model, self).__init__()
+    def __init__(self, prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
+                 time_stamps, product_idx):
+        self.product_idx = product_idx
+        super().__init__(prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
+                 time_stamps)
 
     def build(self):
         with pm.Model() as env_model:

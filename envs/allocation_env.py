@@ -124,7 +124,7 @@ class AllocationEnv(gym.Env):
         ts = datetime.datetime.now()
         print("Building environment model: {}".format(ts))
 
-        simple_mod = LinearModel(prior=self.prior,
+        """simple_mod = LinearModel(prior=self.prior,
                                  n_regions=self.n_regions,
                                  n_products=self.n_products,
                                  n_temporal_features=self.n_temporal_features,
@@ -133,7 +133,19 @@ class AllocationEnv(gym.Env):
                                  X_lagged=self.X_lagged,
                                  X_temporal=self.X_temporal,
                                  y=self.y,
-                                 time_stamps=self.time_stamps)
+                                 time_stamps=self.time_stamps)"""
+
+        simple_mod = HierarchicalModel(prior=self.prior,
+                                 n_regions=self.n_regions,
+                                 n_products=self.n_products,
+                                 n_temporal_features=self.n_temporal_features,
+                                 X_region=self.X_region,
+                                 X_product=self.X_product,
+                                 X_lagged=self.X_lagged,
+                                 X_temporal=self.X_temporal,
+                                 y=self.y,
+                                 time_stamps=self.time_stamps,
+                                 product_idx=self.product_idx)
 
         return simple_mod.build()
 
@@ -177,6 +189,7 @@ class AllocationEnv(gym.Env):
         self.X_temporal.set_value(features.temporal)
         self.X_lagged.set_value(features.lagged)
         self.time_stamps.set_value(features.time_stamps)
+        self.product_idx.set_value(features.product_idx)
 
 
     def __get_sales(self, q_ij, prices):
@@ -236,6 +249,7 @@ class AllocationEnv(gym.Env):
         self.X_temporal = theano.shared(train_features.temporal)
         self.X_lagged = theano.shared(train_features.lagged)
         self.time_stamps = theano.shared(train_features.time_stamps)
+        self.product_idx = theano.shared(train_features.product_idx)
         self.y = theano.shared(train_features.y)
         self.prices = train_features.prices
 
