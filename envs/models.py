@@ -47,13 +47,13 @@ class LinearModel(Model):
             w_t = pm.MvNormal('w_t', mu=self.prior.loc_w_t, cov=self.prior.scale_w_t,
                               shape=self.n_temporal_features)
             lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
-            c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=self.X_temporal.shape.eval()[0])
+            c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=25.0, shape=self.X_temporal.shape.eval()[0])
 
             c_all = c_t[self.time_stamps] * w_c
 
             lambda_q = pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T) + c_all + w_s * self.X_lagged
 
-            q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=self.y)
+            q_ij = pm.Normal('quantity_ij', mu=lambda_q, sigma=25.0, observed=self.y)
 
         return env_model
 

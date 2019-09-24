@@ -143,13 +143,19 @@ class AllocationEnv(gym.Env):
         else:
             raise ValueError("environment model has not been built. run build_env_mode()")
 
-    def train(self, n_samples, tune, fname='model.trace'):
+    def train(self, n_iter, n_samples, fname='model.trace'):
         self.__check_model()
         print("Beginning training job - samples: {}".format(n_samples))
         with self.env_model:
-            self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
+            inference = pm.ADVI()
+            approx = pm.fit(n=n_iter, method=inference)
+            self.trace = approx.sample(draws=100)
+            #self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
-        pm.save_trace(self.trace, directory=fname, overwrite=True)
+        #pm.save_trace(self.trace, directory=fname, overwrite=True)
+
+        with open(fname, "wb") as f:
+            pickle.dump(self.trace, f)
 
         return posterior_pred
 
@@ -242,8 +248,12 @@ class AllocationEnv(gym.Env):
         self.env_model = self._build_env_model()
 
         if load_model:
-            with self.env_model:
-                self.trace = pm.load_trace(model_path)
+
+            with open(model_path, 'rb') as f:
+                self.trace = pickle.load(f)
+
+            #with self.env_model:
+                #self.trace = pm.load_trace(model_path)
             ts = datetime.datetime.now()
             print("Environment model read from disk: {}".format(ts))
 
