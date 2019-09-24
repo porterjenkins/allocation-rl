@@ -1,10 +1,11 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 import pymc3 as pm
 import pandas as pd
 import theano
 import pandas as pd
-import json
-from plot import plot_posterior_predictive_check
 from envs.prior import Prior
 import config.config as cfg
 from envs.features import Features
@@ -15,6 +16,9 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import datetime
 from envs.models import LinearModel, HierarchicalModel
+import pickle
+
+
 class AllocationObservationSpace(Space):
     """
     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0.38867918]
