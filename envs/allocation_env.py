@@ -165,7 +165,7 @@ class AllocationEnv(gym.Env):
 
         self.__update_features(features)
         with self.env_model:
-            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
+            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples, progressbar=False)
         sales = self.__get_sales(posterior_pred['quantity_ij'], prices=features.prices)
         return sales
 
