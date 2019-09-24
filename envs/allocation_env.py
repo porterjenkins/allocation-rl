@@ -68,6 +68,7 @@ class AllocationEnv(gym.Env):
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
         self.adj_mtx = config['adj_mtx']
+        self.model_type = config['model_type']
         self.prior = prior
         self.env_model = None
         self.trace = None
@@ -124,30 +125,33 @@ class AllocationEnv(gym.Env):
         ts = datetime.datetime.now()
         print("Building environment model: {}".format(ts))
 
-        """simple_mod = LinearModel(prior=self.prior,
-                                 n_regions=self.n_regions,
-                                 n_products=self.n_products,
-                                 n_temporal_features=self.n_temporal_features,
-                                 X_region=self.X_region,
-                                 X_product=self.X_product,
-                                 X_lagged=self.X_lagged,
-                                 X_temporal=self.X_temporal,
-                                 y=self.y,
-                                 time_stamps=self.time_stamps)"""
+        if self.model_type == 'linear':
 
-        simple_mod = HierarchicalModel(prior=self.prior,
-                                 n_regions=self.n_regions,
-                                 n_products=self.n_products,
-                                 n_temporal_features=self.n_temporal_features,
-                                 X_region=self.X_region,
-                                 X_product=self.X_product,
-                                 X_lagged=self.X_lagged,
-                                 X_temporal=self.X_temporal,
-                                 y=self.y,
-                                 time_stamps=self.time_stamps,
-                                 product_idx=self.product_idx)
+            model = LinearModel(prior=self.prior,
+                                     n_regions=self.n_regions,
+                                     n_products=self.n_products,
+                                     n_temporal_features=self.n_temporal_features,
+                                     X_region=self.X_region,
+                                     X_product=self.X_product,
+                                     X_lagged=self.X_lagged,
+                                     X_temporal=self.X_temporal,
+                                     y=self.y,
+                                     time_stamps=self.time_stamps)
+        else:
 
-        return simple_mod.build()
+            model = HierarchicalModel(prior=self.prior,
+                                     n_regions=self.n_regions,
+                                     n_products=self.n_products,
+                                     n_temporal_features=self.n_temporal_features,
+                                     X_region=self.X_region,
+                                     X_product=self.X_product,
+                                     X_lagged=self.X_lagged,
+                                     X_temporal=self.X_temporal,
+                                     y=self.y,
+                                     time_stamps=self.time_stamps,
+                                     product_idx=self.product_idx)
+
+        return model.build()
 
     def __check_model(self):
         if self.env_model is not None:
@@ -157,7 +161,7 @@ class AllocationEnv(gym.Env):
 
     def train(self, n_iter, n_samples, fname='model.trace'):
         self.__check_model()
-        print("Beginning training job - samples: {}".format(n_samples))
+        print("Beginning training job - iterations: {} samples: {}".format(n_iter,n_samples))
         with self.env_model:
             inference = pm.ADVI()
             approx = pm.fit(n=n_iter, method=inference)

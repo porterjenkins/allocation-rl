@@ -19,3 +19,7 @@ for k in EVAL_KEYS:
 
 vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
 vals['adj_mtx'] = make_bin_mtx(vals['adj_mtx'], dims=(vals['n_regions'], vals['n_regions']))
+vals['model_path'] = "{}.p".format(vals['model_type'])
+
+
+assert vals['model_type'] in ['hierarchical', 'linear']

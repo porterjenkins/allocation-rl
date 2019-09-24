@@ -8,5 +8,6 @@
     "env_init_loc": "[(0,0), (0,2), (0,3)]",
     "adj_mtx": "[(0,0), (1,1), (2,2), (3,3)]",
     "train_data": "../train-data-simple.csv",
-    "model_path": "model.p"
+    "model_type": "hierarchical"
+
 }
