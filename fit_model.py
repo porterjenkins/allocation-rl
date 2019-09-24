@@ -62,10 +62,10 @@ def build_env_model(X_region, X_product, X_temporal, X_lagged, y=None):
         prior_loc_w_r = np.ones(N_REGIONS)*50
         prior_scale_w_r = config['adj_mtx']*GAMMA
         # Generate region weights
-        #w_r = pm.MvNormal('w_r', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=N_REGIONS)
+        w_r = pm.MvNormal('w_r', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=N_REGIONS)
 
         # Generate w_r_ij
-        w_r_ij_gen = pm.MvNormal('w_r_ij', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=(N_PRODUCTS, N_REGIONS))
+        w_r_ij_gen = pm.MvNormal('w_r_ij', mu=w_r, cov=prior_scale_w_r, shape=(N_PRODUCTS, N_REGIONS))
         w_r_ij = w_r_ij_gen[PRODUCT_IDX, :]
         print("w_r_ij", w_r_ij.tag.test_value.shape)
 
@@ -106,7 +106,7 @@ def build_env_model(X_region, X_product, X_temporal, X_lagged, y=None):
         #print("c_all: ", c_all.tag.test_value.shape)
 
         lambda_q = pm.math.sum(X_region * w_r_ij, axis=1) + pm.math.dot(X_product, w_p.T) + c_all + w_s*X_lagged
-        print("lambda_q", lambda_q.tag.test_value.shape)
+        #print("lambda_q", lambda_q.tag.test_value.shape)
 
         #q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
         q_ij = pm.Normal('quantity_ij', mu=lambda_q, sigma=25.0, observed=y)
@@ -161,19 +161,19 @@ plt.ylabel('ELBO')
 plt.xlabel('iteration')
 plt.savefig("figs/elbo.pdf")
 
-"""plt.figure(figsize=(7, 7))
-pm.traceplot(trace[::10], var_names=['w_s', 'w_p','w_c','w_r'])
+plt.figure(figsize=(7, 7))
+pm.traceplot(trace, var_names=['w_s', 'w_p','w_c','w_r'])
 plt.savefig("trace-plot.png")
 plt.clf()
 plt.close()
 
 plt.figure(figsize=(7, 7))
-pm.traceplot(trace[::10], var_names=['w_t'])
+pm.traceplot(trace, var_names=['w_t'])
 plt.savefig("trace-plot-temporal.png")
 
 ## Test data ##
 
-X_region.set_value(test_features['region'])
+"""X_region.set_value(test_features['region'])
 X_product.set_value(test_features['product'])
 X_temporal.set_value(test_features['temporal'])
 X_lagged.set_value(test_features['lagged'])
