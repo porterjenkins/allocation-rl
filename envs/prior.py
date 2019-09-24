@@ -6,8 +6,8 @@ import config.config as cfg
 class Prior(object):
     """Prior specification for world model"""
 
-    def __init__(self, fname, config):
-        self.fname = fname
+    def __init__(self, config):
+        self.fname = config['prior_fname']
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']

@@ -258,7 +258,6 @@ class AllocationEnv(gym.Env):
         self.prices = train_features.prices
 
         self.init_state = State.init_state(cfg.vals)
-        print(self.init_state)
         init_features = Features.featurize_state(self.init_state).toarray()
         self.init_state_len = init_features.shape[1]
         self.feature_shape = init_features.shape
@@ -276,21 +275,4 @@ class AllocationEnv(gym.Env):
             ts = datetime.datetime.now()
             print("Environment model read from disk: {}".format(ts))
 
-
-
-
-
-
-if __name__ == "__main__":
-    prior = Prior(config=cfg.vals,
-                  fname='prior.json')
-
-
-    env = AllocationEnv(config=cfg.vals,prior=prior)
-
-    a = np.zeros((4, 4))
-    a[3, 3] = 1.0
-    state = env.reset()
-    ob, reward, epsode_over, info = env.step(a)
-    print(ob)
 

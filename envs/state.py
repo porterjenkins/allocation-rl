@@ -97,7 +97,8 @@ class State(object):
                       board_config=config['env_init_loc'],
                       prev_sales=prev_sales)
 
-
+        print("------Intial State------")
+        print(state)
         return state
 
 
