@@ -46,9 +46,10 @@ N_TEMPORAL_FEATURES = 7
 N = train_data.shape[0]
 T = len(train_data['time'].unique())
 TIME_STAMPS = train_data['time'].values.astype(int)
+PRODUCT_IDX = train_data['product'].values.astype(int)
+
 
 train_features = feature_extraction(train_data)
-test_features = feature_extraction(test_data)
 
 y_train = get_target(train_data)
 y_test = get_target(test_data)
@@ -61,13 +62,18 @@ def build_env_model(X_region, X_product, X_temporal, X_lagged, y=None):
         prior_loc_w_r = np.ones(N_REGIONS)*50
         prior_scale_w_r = config['adj_mtx']*GAMMA
         # Generate region weights
-        w_r = pm.MvNormal('w_r', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=N_REGIONS)
+        #w_r = pm.MvNormal('w_r', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=N_REGIONS)
+
+        # Generate w_r_ij
+        w_r_ij_gen = pm.MvNormal('w_r_ij', mu=prior_loc_w_r, cov=prior_scale_w_r, shape=(N_PRODUCTS, N_REGIONS))
+        w_r_ij = w_r_ij_gen[PRODUCT_IDX, :]
+        print("w_r_ij", w_r_ij.tag.test_value.shape)
 
         # Prior for product weights
         prior_loc_w_p = np.ones(N_PRODUCTS)*10
-        prior_scale_w_r = np.eye(N_PRODUCTS)*25
+        prior_scale_w_p = np.eye(N_PRODUCTS)*25
         # Generate Product weights
-        w_p = pm.MvNormal('w_p', mu=prior_loc_w_p, cov=prior_scale_w_r, shape=N_PRODUCTS)
+        w_p = pm.MvNormal('w_p', mu=prior_loc_w_p, cov=prior_scale_w_p, shape=N_PRODUCTS)
 
         # Prior for customer weight
         prior_loc_w_c = 100
@@ -91,17 +97,19 @@ def build_env_model(X_region, X_product, X_temporal, X_lagged, y=None):
         lambda_c_t = pm.math.dot(X_temporal, w_t.T)
         #print("lambda_c_t", lambda_c_t.tag.test_value)
         #lambda_c_t = 5.0
-        c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=T)
+        #c_t = pm.Poisson("customer_t", mu=lambda_c_t, shape=T)
+        c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=25.0, shape=T)
         #print("c_t", c_t.tag.test_value)
 
 
         c_all = c_t[TIME_STAMPS] * w_c
         #print("c_all: ", c_all.tag.test_value.shape)
 
-        lambda_q = pm.math.dot(X_region, w_r.T) + pm.math.dot(X_product, w_p.T) + c_all + w_s*X_lagged
-        #print("lambda_q", lambda_q.tag.test_value.shape)
+        lambda_q = pm.math.sum(X_region * w_r_ij, axis=1) + pm.math.dot(X_product, w_p.T) + c_all + w_s*X_lagged
+        print("lambda_q", lambda_q.tag.test_value.shape)
 
-        q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
+        #q_ij = pm.Poisson('quantity_ij', mu=lambda_q, observed=y)
+        q_ij = pm.Normal('quantity_ij', mu=lambda_q, sigma=25.0, observed=y)
 
     return env_model
 
@@ -114,14 +122,19 @@ y = theano.shared(y_train)
 
 env_model = build_env_model(X_region, X_product, X_temporal, X_lagged, y)
 
+for RV in env_model.basic_RVs:
+    print(RV.name, RV.logp(env_model.test_point))
 
 with env_model:
-    trace = pm.sample(100, tune=100, init='advi+adapt_diag')
+    inference = pm.ADVI()
+    approx = pm.fit(n=50000, method=inference)
+    trace = approx.sample(draws=100)
+    #trace = pm.sample(100, tune=100)
     posterior_pred_train = pm.sample_posterior_predictive(trace)
     #mean_field = pm.fit(method='advi')
     #posterior_pred = pm.sample_posterior_predictive(mean_field)
 
-
+print(posterior_pred_train['quantity_ij'].shape)
 y_hat = posterior_pred_train['quantity_ij'].mean(axis=0)
 sales = posterior_pred_train['quantity_ij'] * train_features['prices']
 y_hat_sales = sales.mean(axis=0)
@@ -143,6 +156,11 @@ mse_sales = np.mean(np.abs((train_data.sales.values - y_hat_sales)))
 print("sales mse: {}".format(mse_sales))
 
 
+plt.plot(-inference.hist)
+plt.ylabel('ELBO')
+plt.xlabel('iteration')
+plt.savefig("figs/elbo.pdf")
+
 """plt.figure(figsize=(7, 7))
 pm.traceplot(trace[::10], var_names=['w_s', 'w_p','w_c','w_r'])
 plt.savefig("trace-plot.png")
@@ -151,7 +169,7 @@ plt.close()
 
 plt.figure(figsize=(7, 7))
 pm.traceplot(trace[::10], var_names=['w_t'])
-plt.savefig("trace-plot-temporal.png")"""
+plt.savefig("trace-plot-temporal.png")
 
 ## Test data ##
 
@@ -186,4 +204,4 @@ print("test sales mae: {}".format(mse_sales))
 np.savetxt('sales-draws.csv', sales.transpose(), delimiter=',')
 
 
-test_data.to_csv("model-output.csv")
+test_data.to_csv("model-output.csv")"""
