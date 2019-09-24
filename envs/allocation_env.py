@@ -254,6 +254,7 @@ class AllocationEnv(gym.Env):
         self.prices = train_features.prices
 
         self.init_state = State.init_state(cfg.vals)
+        print(self.init_state)
         init_features = Features.featurize_state(self.init_state).toarray()
         self.init_state_len = init_features.shape[1]
         self.feature_shape = init_features.shape

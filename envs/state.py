@@ -27,7 +27,7 @@ class State(object):
         self.curr_sales = None
 
     def __str__(self):
-        s = "day: {} \n board: {} \n t-1: {}".format(self.day_vec, self.board_config, self.prev_sales)
+        s = "day:\n{}\nboard:\n{}\n prev_sales:\n{}".format(self.day_vec, self.board_config, self.prev_sales)
         return s
 
     def update_board(self, a):
