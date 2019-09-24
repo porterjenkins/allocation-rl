@@ -4,7 +4,7 @@ import pymc3 as pm
 class Model(object):
 
     def __init__(self, prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
-                 time_stamps, product_idx):
+                 time_stamps):
         self.prior = prior
         self.n_regions = n_regions
         self.n_products = n_products
@@ -15,15 +15,16 @@ class Model(object):
         self.X_lagged = X_lagged
         self.y = y
         self.time_stamps = time_stamps
-        self.product_idx = product_idx
 
     def build(self):
         pass
 
 
 class LinearModel(Model):
-    def __init__(self):
-        super(Model, self).__init__()
+    def __init__(self, prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
+                 time_stamps):
+        super().__init__(prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
+                 time_stamps)
 
     def build(self):
         with pm.Model() as env_model:
