@@ -81,6 +81,7 @@ class AllocationEnv(gym.Env):
         '''
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
         action = self._convert_to_categorical(action)
+        # TODO: the action need to be converted to env's known action
         self._take_action(action)
 
         reward = self._get_reward()
