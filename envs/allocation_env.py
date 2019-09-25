@@ -1,3 +1,4 @@
+import tensorflow as tf
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -64,10 +65,6 @@ class AllocationEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def _convert_to_categorical(self, action):
-        action = action.astype(int)
-        num_class = self.n_regions*self.n_products*3
-        return np.eye(num_class)[action]
 
     def step(self, action):
         '''
@@ -80,8 +77,7 @@ class AllocationEnv(gym.Env):
                 info: additional info for the
         '''
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        action = self._convert_to_categorical(action)
-        # TODO: the action need to be converted to env's known action
+        action = self._map_agent_action(action)
         self._take_action(action)
 
         reward = self._get_reward()
@@ -248,6 +244,36 @@ class AllocationEnv(gym.Env):
             ts = datetime.datetime.now()
             print("Environment model read from disk: {}".format(ts))
 
+    def _convert_to_categorical(self, action):
+        action = action.astype(int)
+        num_class = self.n_regions*self.n_products*3
+        return np.eye(num_class)[action]
+
+    def _map_agent_action(self, action):
+        a_idx = action.astype(int)[0]
+        action_vec = np.zeros(self.n_regions*self.n_products*3)
+        action_vec[a_idx] = 1.0
+        action_mtx = action_vec.reshape((self.n_regions, self.n_products, 3))
+
+        action_space_arr = np.zeros((self.n_regions, self.n_products, 3))
+        action_space_arr[0, :, :] = -1.0
+        action_space_arr[2, :, :] = 1.0
+
+        a_sparse = action_mtx * action_space_arr
+
+        return a_sparse.sum(axis=2)
+
+    @staticmethod
+    def check_feasible_action(state, action):
+        proposed_action = state.board_config + action
+
+        if proposed_action.any() < -1.0 or proposed_action.any() > 1.0:
+            updated_action = np.zeros_like(state.board_config)
+        else:
+            updated_action = action
+
+        return updated_action
+
 
 if __name__ == "__main__":
     import gym
@@ -259,7 +285,7 @@ if __name__ == "__main__":
 
     prior = Prior(config=cfg.vals)
 
-    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
@@ -268,10 +294,13 @@ if __name__ == "__main__":
     action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
 
     model = DDPG(MlpPolicy, env, verbose=1, param_noise=param_noise, action_noise=action_noise)
-    model.learn(total_timesteps=400000)
+    model.learn(total_timesteps=1000)
 
     obs = env.reset()
     while True:
         action, _states = model.predict(obs)
+        # TODO: add check for feasible action space
+        #action = AllocationEnv.check_feasible_action(obs, action)
         obs, rewards, dones, info = env.step(action)
+        print(obs)
         env.render()

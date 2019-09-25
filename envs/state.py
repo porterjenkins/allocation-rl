@@ -38,7 +38,7 @@ class State(object):
         """
 
         # ensure that components of board configuration are in {0,1}
-        self.board_config = np.minimum(self.board_config + a, 1.0)
+        self.board_config = self.board_config + a
 
         self._products = np.where(self.board_config == 1.0)[1]
         self._regions = np.where(self.board_config == 1.0)[0]
