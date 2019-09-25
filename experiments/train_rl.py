@@ -7,6 +7,10 @@ import config.config as cfg
 import matplotlib.pyplot as plt
 import numpy as np
 
+from stable_baselines.ddpg.policies import MlpPolicy
+from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
+from stable_baselines import DDPG
 
 prior = Prior(config=cfg.vals)
 
@@ -21,10 +25,19 @@ env.reset()
 history = []
 T = 10
 
+model = DDPG(MlpPolicy, env, verbose=1)
+model.learn(total_timesteps=400000)
+#model.save("tmp-agent")
+
+ob = env.reset()
 for i in range(T):
     print("t = {}".format(i+1))
-    a = env.action_space.sample()
-    ob, reward, epsode_over, info = env.step(a)
+    #a = env.action_space.sample()-1
+    action, _states = model.predict(ob)
+    print("**action**")
+    print(a)
+    # TODO: check if feasible action here
+    ob, reward, epsode_over, info = env.step(action)
     history.append(reward)
     print(ob)
     print("r: {}".format(reward))

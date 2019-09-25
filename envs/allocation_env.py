@@ -89,7 +89,7 @@ class AllocationEnv(gym.Env):
         observation_shape = tuple(observation_shape)
 
         # todo modify the action space and observation space
-        self.action_space = spaces.Box(low=0, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
+        self.action_space = spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
         self.observation_space = AllocationObservationSpace(observation_shape[-1])
 
 
@@ -108,7 +108,7 @@ class AllocationEnv(gym.Env):
                 info: additional info for the
         '''
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-
+        # TODO: check if action is feasible
         self._take_action(action)
 
         reward = self._get_reward()
@@ -276,3 +276,7 @@ class AllocationEnv(gym.Env):
             print("Environment model read from disk: {}".format(ts))
 
 
+if __name__ == "__main__":
+    prior = Prior(config=cfg.vals)
+
+    env = AllocationEnv(config=cfg.vals, prior=prior)
