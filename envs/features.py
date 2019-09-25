@@ -114,6 +114,18 @@ class Features(object):
 
         return features
 
+    @classmethod
+    def featurize_state_saperate(cls, state):
+        '''
+        get the state features into an array list
+        :param state:
+        :return: an numpy array
+        [ [1*7],
+          [4*4],
+          [4*4] ]
+        '''
+        return {"day_vec": state.day_vec, "board_config": state.board_config, "prev_sales": state.prev_sales}
+
 
 if __name__ == "__main__":
 

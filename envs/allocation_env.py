@@ -11,52 +11,12 @@ import config.config as cfg
 from envs.features import Features
 from envs.state import State
 import gym
-from gym import Space
+
 from gym import error, spaces, utils
 from gym.utils import seeding
 import datetime
 from envs.models import LinearModel, HierarchicalModel
 import pickle
-
-
-class AllocationObservationSpace(Space):
-    """
-    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0.38867918]
-
-    """
-
-    def __init__(self, size):
-        assert isinstance(size, int) and size > 0
-        self.size = size
-        super(Space, self).__init__()
-
-    def sample(self):
-        """
-        Generates a single random sample .
-        In creating a sample o, each coordinate is sampled according to
-        the form of the interval:
-        """
-        return np.append(gym.spaces.MultiBinary(self.size-1).sample(),
-               gym.spaces.Box(low=0, high=np.inf, shape=(1,)).sample())
-
-    def contains(self, x):
-        if isinstance(x, list):
-            x = np.array(x)  # Promote list to array for contains check
-        if x.shape[0] == self.size:
-            if gym.spaces.MultiBinary(self.size-1).contains(x[:-1]) and \
-                    gym.spaces.Box(low=0, high=np.inf, shape=(1,)).contains(x[-1:]):
-                return True
-            else:
-                False
-        else:
-            return False
-
-    def __repr__(self):
-        return "AllocationObservationSpace({})".format(self.size)
-
-    def __eq__(self, other):
-        return self.size == other.size
-
 
 class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
@@ -89,13 +49,25 @@ class AllocationEnv(gym.Env):
         observation_shape = tuple(observation_shape)
 
         # todo modify the action space and observation space
-        self.action_space = spaces.Box(low=0, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
-        self.observation_space = AllocationObservationSpace(observation_shape[-1])
+        # self.action_space = spaces.Box(low=-1, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
+        self.action_space = spaces.Box(low=0, high=self.n_regions*self.n_products*3, shape=(1, ), dtype=np.int8)
+        # self.observation_space = AllocationObservationSpace(observation_shape[-1])
+        self.observation_space = spaces.Dict({"day_vec": gym.spaces.MultiBinary(7),
+                                              "board_config": spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products),
+                                                          dtype=np.int8),
+                                              "prev_sales": spaces.Box(low=0, high=np.inf, shape=(self.n_regions, self.n_products),
+                                                          dtype=np.float32)}
+                                              )
 
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    def _convert_to_categorical(self, action):
+        action = action.astype(int)
+        num_class = self.n_regions*self.n_products*3
+        return np.eye(num_class)[action]
 
     def step(self, action):
         '''
@@ -108,7 +80,7 @@ class AllocationEnv(gym.Env):
                 info: additional info for the
         '''
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-
+        action = self._convert_to_categorical(action)
         self._take_action(action)
 
         reward = self._get_reward()
@@ -229,7 +201,7 @@ class AllocationEnv(gym.Env):
             return False
 
     def _get_state(self):
-        return self.state
+        return Features.featurize_state_saperate(self.state)
 
     def _get_reward(self):
         r = self.state.prev_sales.sum()
@@ -276,3 +248,29 @@ class AllocationEnv(gym.Env):
             print("Environment model read from disk: {}".format(ts))
 
 
+if __name__ == "__main__":
+    import gym
+
+    from policies.ddpg.policies import MlpPolicy
+    from stable_baselines.common.vec_env import DummyVecEnv
+    from policies.ddpg.ddpg import DDPG
+    from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
+
+    prior = Prior(config=cfg.vals)
+
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
+    env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
+
+
+    n_actions = env.action_space.shape[-1]
+    param_noise = None
+    action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
+
+    model = DDPG(MlpPolicy, env, verbose=1, param_noise=param_noise, action_noise=action_noise)
+    model.learn(total_timesteps=400000)
+
+    obs = env.reset()
+    while True:
+        action, _states = model.predict(obs)
+        obs, rewards, dones, info = env.step(action)
+        env.render()
