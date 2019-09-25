@@ -38,6 +38,7 @@ class AllocationEnv(gym.Env):
         self.seed()
         self.viewer = None
         self.state = None
+        self.n_actions = self.n_regions*self.n_products*3
 
         self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
@@ -50,9 +51,7 @@ class AllocationEnv(gym.Env):
         observation_shape = tuple(observation_shape)
 
         # todo modify the action space and observation space
-        # self.action_space = spaces.Box(low=-1, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
-        self.action_space = spaces.Box(low=0, high=self.n_regions*self.n_products*3, shape=(1, ), dtype=np.int8)
-        # self.observation_space = AllocationObservationSpace(observation_shape[-1])
+        self.action_space = spaces.Discrete(self.n_actions)
         self.observation_space = spaces.Dict({"day_vec": gym.spaces.MultiBinary(7),
                                               "board_config": spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products),
                                                           dtype=np.int8),
@@ -278,22 +277,18 @@ class AllocationEnv(gym.Env):
 if __name__ == "__main__":
     import gym
 
-    from policies.ddpg.policies import MlpPolicy
+    from stable_baselines.deepq.policies import MlpPolicy
     from stable_baselines.common.vec_env import DummyVecEnv
-    from policies.ddpg.ddpg import DDPG
-    from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
+    from stable_baselines import DQN
 
     prior = Prior(config=cfg.vals)
 
     env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+    n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
-    n_actions = env.action_space.shape[-1]
-    param_noise = None
-    action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
-
-    model = DDPG(MlpPolicy, env, verbose=1, param_noise=param_noise, action_noise=action_noise)
+    model = DQN(MlpPolicy, env, verbose=1)
     model.learn(total_timesteps=1000)
 
     obs = env.reset()
