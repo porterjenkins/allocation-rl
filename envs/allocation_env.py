@@ -249,6 +249,8 @@ class AllocationEnv(gym.Env):
         return np.eye(num_class)[action]
 
     def _map_agent_action(self, action):
+        if isinstance(action, np.int64) or isinstance(action, np.int32) or isinstance(action, np.int8):
+            action = np.array([action])
         a_idx = action.astype(int)[0]
         action_vec = np.zeros(self.n_regions*self.n_products*3)
         action_vec[a_idx] = 1.0
@@ -277,13 +279,13 @@ class AllocationEnv(gym.Env):
 if __name__ == "__main__":
     import gym
 
-    from stable_baselines.deepq.policies import MlpPolicy
+    from policies.deepq.policies import MlpPolicy
     from stable_baselines.common.vec_env import DummyVecEnv
-    from stable_baselines import DQN
+    from policies.deepq.dqn import DQN
 
     prior = Prior(config=cfg.vals)
 
-    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
     n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
