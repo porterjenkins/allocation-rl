@@ -285,7 +285,7 @@ if __name__ == "__main__":
 
     prior = Prior(config=cfg.vals)
 
-    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
     n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 

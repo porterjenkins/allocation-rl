@@ -10,8 +10,7 @@ N_ITER = int(sys.argv[1])
 N_SAMPLES = int(sys.argv[2])
 LOAD_MODEL = False
 
-prior = Prior(config=cfg.vals,
-              fname='prior.json')
+prior = Prior(config=cfg.vals)
 
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=LOAD_MODEL)
 y_hat = env.train(n_iter=N_ITER, n_samples=N_SAMPLES, fname=cfg.vals['model_path'])
