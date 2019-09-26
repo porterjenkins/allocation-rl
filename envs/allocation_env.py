@@ -38,7 +38,7 @@ class AllocationEnv(gym.Env):
         self.seed()
         self.viewer = None
         self.state = None
-        self.n_actions = self.n_regions*self.n_products*3
+        self.n_actions = 1 + self.n_regions*self.n_products*2
 
         self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
@@ -76,7 +76,7 @@ class AllocationEnv(gym.Env):
                 info: additional info for the
         '''
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        action = self._map_agent_action(action)
+        action = AllocationEnv.map_agent_action(action)
         self._take_action(action)
 
         reward = self._get_reward()
@@ -251,32 +251,58 @@ class AllocationEnv(gym.Env):
         num_class = self.n_regions*self.n_products*3
         return np.eye(num_class)[action]
 
-    def _map_agent_action(self, action):
-        if isinstance(action, np.int64) or isinstance(action, np.int32) or isinstance(action, np.int8):
+    @staticmethod
+    def map_agent_action(action):
+        n_r = cfg.vals['n_regions']
+        n_p = cfg.vals['n_products']
+        n_actions = 1 + n_r * n_p * 2
+
+        if isinstance(action, np.int64) or isinstance(action, np.int32) or isinstance(action, np.int8) or isinstance(action, int):
             action = np.array([action])
-        a_idx = action.astype(int)[0]
-        action_vec = np.zeros(self.n_regions*self.n_products*3)
-        action_vec[a_idx] = 1.0
-        action_mtx = action_vec.reshape((self.n_regions, self.n_products, 3))
+        a_idx = action.astype(int)[0] - 1
 
-        action_space_arr = np.zeros((self.n_regions, self.n_products, 3))
-        action_space_arr[0, :, :] = -1.0
-        action_space_arr[2, :, :] = 1.0
+        action_vec = np.zeros(n_actions - 1)
 
-        a_sparse = action_mtx * action_space_arr
+        if a_idx >= 0:
+            # if action is valid action
+            action_vec[a_idx] = 1.0
+            action_mtx = action_vec.reshape((n_r, n_p, 2))
+            action_space_arr = np.zeros((n_r, n_p, 2))
+            action_space_arr[:, :, 0] = -1.0
+            action_space_arr[:, :, 1] = 1.0
+            a_sparse = action_mtx * action_space_arr
+
+        else:
+            # if action is the null action (do nothing, i == 0)
+            a_sparse = action_vec.reshape((n_r, n_p, 2))
 
         return a_sparse.sum(axis=2)
 
     @staticmethod
-    def check_feasible_action(state, action):
-        proposed_action = state.board_config + action
+    def get_feasible_actions(state):
+        curr_board = state.board_config.flatten()
+        board_positive = curr_board + 1
+        board_negative = curr_board - 1
 
-        if proposed_action.any() < -1.0 or proposed_action.any() > 1.0:
-            updated_action = np.zeros_like(state.board_config)
+        valid_pos_moves = set(np.where(board_positive <= 1)[0])
+        valid_neg_moves = set(np.where(board_negative >= -1)[0])
+        feasible_action = valid_pos_moves.intersection(valid_neg_moves)
+
+        return feasible_action
+
+    @staticmethod
+    def is_feasible_action(state, action):
+        feasible_actions = AllocationEnv.get_feasible_actions(state)
+        if action in feasible_actions:
+            return True
         else:
-            updated_action = action
+            return False
 
-        return updated_action
+    @staticmethod
+    def check_action(state, action):
+        is_feasible = AllocationEnv.is_feasible_action(state, action)
+        if is_feasible:
+            return action
 
 
 if __name__ == "__main__":
@@ -288,17 +314,19 @@ if __name__ == "__main__":
 
     prior = Prior(config=cfg.vals)
 
-    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
     n_actions = env.n_actions
-    env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
+    #env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
-    model = DQN(MlpPolicy, env, verbose=1)
-    model.learn(total_timesteps=1000)
+    #model = DQN(MlpPolicy, env, verbose=1)
+    #model.learn(total_timesteps=100)
 
     obs = env.reset()
     while True:
-        action, _states = model.predict(obs)
+        #action, _states = model.predict(obs)
+        #action = env.action_space.sample()
+        action = 1
         # TODO: add check for feasible action space
         #action = AllocationEnv.check_feasible_action(obs, action)
         obs, rewards, dones, info = env.step(action)
