@@ -122,10 +122,10 @@ class AllocationEnv(gym.Env):
         return model.build()
 
     def __check_model(self):
-        if self.env_model is not None:
+        if self.trace is not None:
             return None
         else:
-            raise ValueError("environment model has not been built. run build_env_mode()")
+            raise ValueError("Environment model has not been loaded or trained. Try re-training or set load_model=True")
 
     def train(self, n_iter, n_samples, fname='model.trace'):
         self.__check_model()
@@ -234,6 +234,9 @@ class AllocationEnv(gym.Env):
         self.env_model = self._build_env_model()
 
         if load_model:
+
+            if not os.path.exists(model_path):
+                raise Exception("Model file {} does not exist. Run train.py and try again".format(model_path))
 
             with open(model_path, 'rb') as f:
                 self.trace = pickle.load(f)
