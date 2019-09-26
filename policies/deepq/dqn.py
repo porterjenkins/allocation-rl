@@ -13,6 +13,8 @@ from stable_baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplay
 from policies.deepq.policies import DQNPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
 
+from envs.allocation_env import AllocationEnv
+
 
 class DQN(OffPolicyRLModel):
     """
@@ -212,6 +214,8 @@ class DQN(OffPolicyRLModel):
                 env_action = action
                 reset = False
                 new_obs, rew, done, info = self.env.step(env_action)
+                # CHECK IF ACTIONS IS FEASIBLE
+                action = AllocationEnv.check_action(obs['board_config'], action)
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(obs, action, rew, new_obs, float(done))
                 obs = new_obs
