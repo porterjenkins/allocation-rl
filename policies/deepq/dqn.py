@@ -102,6 +102,69 @@ class DQN(OffPolicyRLModel):
         policy = self.step_model
         return policy.obs_ph, tf.placeholder(tf.int32, [None]), policy.q_values
 
+    @staticmethod
+    def _get_vec_observation(obs_dict):
+        assert isinstance(obs_dict, dict)
+        return np.array(np.concatenate(
+                        ([obs_dict[key] for key in ['day_vec', 'board_config', 'prev_sales']]), axis=None))
+
+    @staticmethod
+    def _is_vectorized_observation(observation, observation_space):
+        """
+        For every observation type, detects and validates the shape,
+        then returns whether or not the observation is vectorized.
+
+        :param observation: (np.ndarray) the input observation to validate
+        :param observation_space: (gym.spaces) the observation space
+        :return: (bool) whether the given observation is vectorized or not
+        """
+        if isinstance(observation_space, gym.spaces.Box):
+            if observation.shape == observation_space.shape:
+                return False
+            elif observation.shape[1:] == observation_space.shape:
+                return True
+            else:
+                raise ValueError("Error: Unexpected observation shape {} for ".format(observation.shape) +
+                                 "Box environment, please use {} ".format(observation_space.shape) +
+                                 "or (n_env, {}) for the observation shape."
+                                 .format(", ".join(map(str, observation_space.shape))))
+        elif isinstance(observation_space, gym.spaces.Discrete):
+            if observation.shape == ():  # A numpy array of a number, has shape empty tuple '()'
+                return False
+            elif len(observation.shape) == 1:
+                return True
+            else:
+                raise ValueError("Error: Unexpected observation shape {} for ".format(observation.shape) +
+                                 "Discrete environment, please use (1,) or (n_env, 1) for the observation shape.")
+        elif isinstance(observation_space, gym.spaces.MultiDiscrete):
+            if observation.shape == (len(observation_space.nvec),):
+                return False
+            elif len(observation.shape) == 2 and observation.shape[1] == len(observation_space.nvec):
+                return True
+            else:
+                raise ValueError("Error: Unexpected observation shape {} for MultiDiscrete ".format(observation.shape) +
+                                 "environment, please use ({},) or ".format(len(observation_space.nvec)) +
+                                 "(n_env, {}) for the observation shape.".format(len(observation_space.nvec)))
+        elif isinstance(observation_space, gym.spaces.MultiBinary):
+            if observation.shape == (observation_space.n,):
+                return False
+            elif len(observation.shape) == 2 and observation.shape[1] == observation_space.n:
+                return True
+            else:
+                raise ValueError("Error: Unexpected observation shape {} for MultiBinary ".format(observation.shape) +
+                                 "environment, please use ({},) or ".format(observation_space.n) +
+                                 "(n_env, {}) for the observation shape.".format(observation_space.n))
+        elif isinstance(observation_space, gym.spaces.Dict):
+            import logging
+            # print("the observation is the space type {} "
+            #             "and the observation is in vector with shape {}.".format(observation_space, observation.shape))
+            pass
+
+
+        else:
+            raise ValueError("Error: Cannot determine if the observation is vectorized with the space type {}."
+                             .format(observation_space))
+
     def setup_model(self):
 
         with SetVerbosity(self.verbose):
@@ -206,9 +269,7 @@ class DQN(OffPolicyRLModel):
                     kwargs['update_param_noise_threshold'] = update_param_noise_threshold
                     kwargs['update_param_noise_scale'] = True
                 with self.sess.as_default():
-                    action = self.act(np.array(np.concatenate(
-                        ([obs[key] for key in ['day_vec', 'board_config', 'prev_sales']]), axis=None)
-                    )[None], update_eps=update_eps, **kwargs)[0]
+                    action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs)[0]
                 env_action = action
                 reset = False
                 new_obs, rew, done, info = self.env.step(env_action)
@@ -294,10 +355,9 @@ class DQN(OffPolicyRLModel):
         return self
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
-        observation = np.array(observation)
+        observation = self._get_vec_observation(observation)[None]
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
-        observation = observation.reshape((-1,) + self.observation_space.shape)
         with self.sess.as_default():
             actions, _, _ = self.step_model.step(observation, deterministic=deterministic)
 

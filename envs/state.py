@@ -1,7 +1,6 @@
 import numpy as np
 import config.config as cfg
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 
 class State(object):
     """
@@ -37,7 +36,6 @@ class State(object):
         :return:
         """
 
-        # ensure that components of board configuration are in {0,1}
         self.board_config = self.board_config + a
 
         self._products = np.where(self.board_config == 1.0)[1]
@@ -113,3 +111,4 @@ if __name__ == "__main__":
     print(init_state.board_config)
     init_state.update_board(a)
     print(init_state.board_config)
+
