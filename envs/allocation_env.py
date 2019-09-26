@@ -279,8 +279,8 @@ class AllocationEnv(gym.Env):
         return a_sparse.sum(axis=2)
 
     @staticmethod
-    def get_feasible_actions(state):
-        curr_board = state.board_config.flatten()
+    def get_feasible_actions(board_config):
+        curr_board = board_config.flatten()
         board_positive = curr_board + 1
         board_negative = curr_board - 1
 
@@ -291,18 +291,20 @@ class AllocationEnv(gym.Env):
         return feasible_action
 
     @staticmethod
-    def is_feasible_action(state, action):
-        feasible_actions = AllocationEnv.get_feasible_actions(state)
+    def is_feasible_action(board_config, action):
+        feasible_actions = AllocationEnv.get_feasible_actions(board_config)
         if action in feasible_actions:
             return True
         else:
             return False
 
     @staticmethod
-    def check_action(state, action):
-        is_feasible = AllocationEnv.is_feasible_action(state, action)
+    def check_action(board_config, action):
+        is_feasible = AllocationEnv.is_feasible_action(board_config, action)
         if is_feasible:
             return action
+        else:
+            return 0
 
 
 if __name__ == "__main__":
@@ -315,7 +317,7 @@ if __name__ == "__main__":
     prior = Prior(config=cfg.vals)
 
     env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
-    n_actions = env.n_actions
+    #n_actions = env.n_actions
     #env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
@@ -325,10 +327,9 @@ if __name__ == "__main__":
     obs = env.reset()
     while True:
         #action, _states = model.predict(obs)
-        #action = env.action_space.sample()
-        action = 1
         # TODO: add check for feasible action space
-        #action = AllocationEnv.check_feasible_action(obs, action)
+        action = 2
+        action = AllocationEnv.check_action(obs['board_config'], action)
         obs, rewards, dones, info = env.step(action)
         print(obs)
         env.render()
