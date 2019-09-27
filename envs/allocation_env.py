@@ -322,7 +322,7 @@ if __name__ == "__main__":
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
-    model = DQN(MlpPolicy, env, verbose=2,learning_starts=50)
+    model = DQN(MlpPolicy, env, verbose=2,learning_starts=20)
     model.learn(total_timesteps=100)
 
     obs = env.reset()

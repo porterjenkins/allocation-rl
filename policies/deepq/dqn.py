@@ -274,7 +274,8 @@ class DQN(OffPolicyRLModel):
                 reset = False
                 new_obs, rew, done, info = self.env.step(env_action)
                 # Store transition in the replay buffer.
-                self.replay_buffer.add(obs, action, rew, new_obs, float(done))
+                self.replay_buffer.add(self._get_vec_observation(obs), action, rew,
+                                       self._get_vec_observation(new_obs), float(done))
                 obs = new_obs
 
                 if writer is not None:
