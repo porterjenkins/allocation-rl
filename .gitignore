@@ -6,3 +6,7 @@ params.json
 
 *.pyc
 *.p
+data/*.csv
+data/*.xlsx
+*.ipynb
+data/.ipynb_checkpoints
