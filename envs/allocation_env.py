@@ -322,17 +322,19 @@ if __name__ == "__main__":
     prior = Prior(config=cfg.vals)
 
     env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+
     n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
-    model = DQN(MlpPolicy, env, verbose=1)
-    model.learn(total_timesteps=50)
+    model = DQN(MlpPolicy, env, verbose=2,learning_starts=50)
+    model.learn(total_timesteps=100)
 
     obs = env.reset()
-    while True:
+    for i in range(10):
         action, _states = model.predict(obs)
+        # TODO: add check for feasible action space
+        action = 2
         action = AllocationEnv.check_action(obs['board_config'], action)
-        obs, rewards, dones, info = env.step(action)
+        obs, rewards, dones, info = env.step([action])
         print(obs)
-        env.render()
