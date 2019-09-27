@@ -272,11 +272,13 @@ class DQN(OffPolicyRLModel):
                     kwargs['update_param_noise_scale'] = True
                 with self.sess.as_default():
                     action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs)[0]
-                env_action = action
                 reset = False
-                new_obs, rew, done, info = self.env.step(env_action)
                 # CHECK IF ACTIONS IS FEASIBLE
                 action = AllocationEnv.check_action(obs['board_config'], action)
+                env_action = action
+                new_obs, rew, done, info = self.env.step(env_action)
+                print("action: {} - reward: {}".format(action, rew))
+                print(new_obs['board_config'])
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(self._get_vec_observation(obs), action, rew,
                                        self._get_vec_observation(new_obs), float(done))
@@ -354,7 +356,7 @@ class DQN(OffPolicyRLModel):
                     logger.record_tabular("% time spent exploring",
                                           int(100 * self.exploration.value(self.num_timesteps)))
                     logger.dump_tabular()
-
+                print('timestamp: {}'.format(self.num_timesteps, end='\r\n'))
                 self.num_timesteps += 1
 
         return self

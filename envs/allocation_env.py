@@ -58,7 +58,7 @@ class AllocationEnv(gym.Env):
                                               "prev_sales": spaces.Box(low=0, high=np.inf, shape=(self.n_regions, self.n_products),
                                                           dtype=np.float32)}
                                               )
-
+        self.action_map = self.build_action_map()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -76,7 +76,7 @@ class AllocationEnv(gym.Env):
                 info: additional info for the
         '''
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        action = AllocationEnv.map_agent_action(action)
+        action = self.map_agent_action(action)
         self._take_action(action)
 
         reward = self._get_reward()
@@ -251,32 +251,30 @@ class AllocationEnv(gym.Env):
         num_class = self.n_regions*self.n_products*3
         return np.eye(num_class)[action]
 
-    @staticmethod
-    def map_agent_action(action):
-        n_r = cfg.vals['n_regions']
-        n_p = cfg.vals['n_products']
-        n_actions = 1 + n_r * n_p * 2
+    def build_action_map(self):
+        m = {}
 
-        if isinstance(action, np.int64) or isinstance(action, np.int32) or isinstance(action, np.int8) or isinstance(action, int):
-            action = np.array([action])
-        a_idx = action.astype(int)[0] - 1
+        idx = 0
+        m[idx] = ((), 0)
+        idx += 1
 
-        action_vec = np.zeros(n_actions - 1)
+        for a in [-1, 1]:
+            for i in range(self.n_regions):
+                for j in range(self.n_products):
 
-        if a_idx >= 0:
-            # if action is valid action
-            action_vec[a_idx] = 1.0
-            action_mtx = action_vec.reshape((n_r, n_p, 2))
-            action_space_arr = np.zeros((n_r, n_p, 2))
-            action_space_arr[:, :, 0] = -1.0
-            action_space_arr[:, :, 1] = 1.0
-            a_sparse = action_mtx * action_space_arr
+                    m[idx] = ((i,j), a)
 
-        else:
-            # if action is the null action (do nothing, i == 0)
-            a_sparse = action_vec.reshape((n_r, n_p, 2))
+                    idx += 1
 
-        return a_sparse.sum(axis=2)
+        return m
+
+    def map_agent_action(self, action):
+
+        a_mtx = np.zeros((self.n_regions, self.n_products))
+        idx, val = self.action_map[action]
+        a_mtx[idx] = val
+
+        return a_mtx
 
     @staticmethod
     def get_feasible_actions(board_config):
@@ -327,8 +325,8 @@ if __name__ == "__main__":
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
-    model = DQN(MlpPolicy, env, verbose=2,learning_starts=20)
-    model.learn(total_timesteps=100)
+    model = DQN(MlpPolicy, env, verbose=2,learning_starts=50)
+    model.learn(total_timesteps=1000)
 
     obs = env.reset()
     for i in range(10):
@@ -336,5 +334,5 @@ if __name__ == "__main__":
         # TODO: add check for feasible action space
         action = 2
         action = AllocationEnv.check_action(obs['board_config'], action)
-        obs, rewards, dones, info = env.step([action])
+        _, obs, rewards, dones, info = env.step([action])
         print(obs)
