@@ -284,11 +284,16 @@ class AllocationEnv(gym.Env):
         board_positive = curr_board + 1
         board_negative = curr_board - 1
 
-        valid_pos_moves = set(np.where(board_positive <= 1)[0])
-        valid_neg_moves = set(np.where(board_negative >= -1)[0])
-        feasible_action = valid_pos_moves.intersection(valid_neg_moves)
+        # add one to account for null action: idx = 0
+        valid_neg_moves = set(np.where(board_negative > -1)[0] + 1)
+        # to get correct action indices add one plus number of possible negative moves (n_regions * n_products)
+        valid_pos_moves = set(np.where(board_positive < 2)[0] + curr_board.shape[0] + 1)
+        feasible_actions = valid_pos_moves.union(valid_neg_moves)
 
-        return feasible_action
+        # null action: do nothing:
+        feasible_actions = feasible_actions.union(set([0]))
+
+        return feasible_actions
 
     @staticmethod
     def is_feasible_action(board_config, action):
@@ -333,4 +338,3 @@ if __name__ == "__main__":
         action = AllocationEnv.check_action(obs['board_config'], action)
         obs, rewards, dones, info = env.step([action])
         print(obs)
-
