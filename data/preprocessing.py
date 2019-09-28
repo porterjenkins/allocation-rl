@@ -1,8 +1,16 @@
 import pandas as pd
 import numpy as np
+import json
+import ast
 
 N_PRODUCTS = 15
 FLIP_PROB = 0.05
+
+def make_bin_mtx(arr, dims):
+    mtx = np.zeros(dims)
+    for idx in arr:
+        mtx[idx] = 1.0
+    return mtx
 
 def get_prev_sales(df):
 
@@ -54,6 +62,13 @@ def init_state(mtx):
 
     return mtx
 
+def get_adj_mtx(fname):
+    with open(fname) as f:
+        adj_store = json.load(f)
+    adj_store['non_zero_entries'] = ast.literal_eval(adj_store['non_zero_entries'])
+    A = make_bin_mtx(adj_store['non_zero_entries'], (adj_store['n_regions'],  adj_store['n_regions']))
+    A = A + np.eye(adj_store['n_regions'])
+    return A
 
 # Import store, sales data
 stores = pd.read_csv("store-level-data.csv")
@@ -87,14 +102,18 @@ n_regions = dict(zip(STORE_SET, [18, 5]))
 
 # Adjacency Matrices
 
-adj = {STORE_SET[0]: np.eye(n_regions[STORE_SET[0]]),
-       STORE_SET[1]: np.eye(n_regions[STORE_SET[1]])}
+adj = {STORE_SET[0]: get_adj_mtx("store-1-adj-mtx.json"),
+       STORE_SET[1]: get_adj_mtx("store-2-adj-mtx.json")}
+
+for k, a in adj.items():
+    is_symmetric = np.allclose(a, a.transpose())
+    assert is_symmetric
 
 # Heterogeneous spatial weights
-gamma = 25
+gamma = 50
 priors = {STORE_SET[0]: {'loc': np.ones(n_regions[STORE_SET[0]])*25,
                          'scale': adj[STORE_SET[0]]*gamma},
-          STORE_SET[1]: {'loc': np.ones(n_regions[STORE_SET[1]])*10,
+          STORE_SET[1]: {'loc': np.ones(n_regions[STORE_SET[1]])*25,
                          'scale':  adj[STORE_SET[1]]*gamma}}
 
 
@@ -241,3 +260,6 @@ store2_train.to_csv("store-2-train.csv")
 
 store1_test.to_csv("store-1-test.csv")
 store2_test.to_csv("store-2-test.csv")
+
+store1_clean.to_csv("store-1-all.csv")
+store2_clean.to_csv("store-2-all.csv")

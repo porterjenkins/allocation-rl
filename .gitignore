@@ -8,5 +8,6 @@ params.json
 *.p
 data/*.csv
 data/*.xlsx
+data/*.json
 *.ipynb
 data/.ipynb_checkpoints
