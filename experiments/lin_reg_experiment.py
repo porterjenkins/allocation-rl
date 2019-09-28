@@ -9,8 +9,17 @@ from sklearn.linear_model import LinearRegression
 import config.config as cfg
 from envs.features import Features
 
-train_data = pandas.read_csv('../data/train-data-simple.csv')
+train_data = pandas.read_csv(cfg.vals['train_data'])
+train_data_features = Features.feature_extraction(train_data, y_col='quantity')
 
-train_data_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
+TRAIN_X = train_data_features.toarray()
+TRAIN_Y = train_data_features.y
 
-train_data_features.toarray()
+test_data = pandas.read_csv(cfg.vals['test_data'])
+test_data_features = Features.feature_extraction(test_data, y_col='quantity')
+
+TEST_X = test_data_features.toarray()
+TEST_Y = test_data_features.y
+
+print(TRAIN_Y)
+print(TEST_Y)
