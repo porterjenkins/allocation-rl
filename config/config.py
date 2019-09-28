@@ -19,8 +19,9 @@ for k in EVAL_KEYS:
     vals[k] = ast.literal_eval(vals[k])
 
 # setup path variables
+vals['prj_name'] =  vals['model_type'] + "-" + vals['train_data'].split("/")[1].split(".")[0]
 vals['prj_root'] = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-vals['model_path'] = "{}/envs/{}.p".format(vals['prj_root'],vals['model_type'])
+vals['model_path'] = "{}/envs/{}.p".format(vals['prj_root'],vals['prj_name'])
 vals['train_data'] = vals['prj_root'] + "/" + vals['train_data']
 vals['prior_fname'] = vals['prj_root'] + "/" + vals['prior_fname']
 

@@ -6,7 +6,7 @@
     "n_temporal_features": 7,
     "env_init_day": 0,
     "env_init_loc": "[(0,0), (0,2), (0,3)]",
-    "adj_mtx": "[(0,0), (1,1), (2,2), (3,3)]",
+    "adj_mtx": "[(0,0), (1,1), (2,2), (3,3), (4,4)]",
     "train_data": "data/store-2-train.csv",
     "model_type": "hierarchical",
     "prior_fname": "envs/prior.json"
