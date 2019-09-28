@@ -34,6 +34,7 @@ class AllocationEnv(gym.Env):
         self.env_model = None
         self.trace = None
         self.posterior_samples = 25
+        self.max_rollouts = 3 # 90 day rollouts
         self.sales = []
         self.seed()
         self.viewer = None
@@ -44,6 +45,7 @@ class AllocationEnv(gym.Env):
         self.sample_index = np.arange(self.feature_shape[0])
 
         self.cnt_reward_not_reduce_round = 0
+        self.time_step_cntr = 0
         self.max_cnt_reward_not_reduce_round = self.metadata['max_cnt_reward_not_reduce_round']
 
         observation_shape = list(self.feature_shape)
@@ -75,11 +77,10 @@ class AllocationEnv(gym.Env):
                 episode_over: boolean, indicates whether it is the episode end
                 info: additional info for the
         '''
-        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        action = self.map_agent_action(action)
+        action, is_valid_action = self.map_agent_action(action)
         self._take_action(action)
 
-        reward = self._get_reward()
+        reward = self._get_reward(is_valid_action)
 
         ob = self._get_state()
 
@@ -173,7 +174,7 @@ class AllocationEnv(gym.Env):
         self.state = self.init_state
         self.cnt_reward_not_reduce_round = 0
         self.viewer = None
-
+        print("*************************Resetting Environment")
         return self._get_state()
 
     def render(self, action, mode='allocation'):
@@ -190,17 +191,26 @@ class AllocationEnv(gym.Env):
         :param reward:
         :return:
         '''
+        self.time_step_cntr += 1
         self.cnt_reward_not_reduce_round += 1
-        if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
+        if self.time_step_cntr >= self.max_rollouts:
             return True
         else:
             return False
 
+        #if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
+        #    return True
+        #else:
+        #    return False
+
     def _get_state(self):
         return Features.featurize_state_saperate(self.state)
 
-    def _get_reward(self):
-        r = self.state.prev_sales.sum()
+    def _get_reward(self, is_valid_action):
+        if is_valid_action:
+            r = self.state.prev_sales.sum()
+        else:
+            r = -1.0
         return r
 
     def _take_action(self, action):
@@ -252,11 +262,11 @@ class AllocationEnv(gym.Env):
         return np.eye(num_class)[action]
 
     def build_action_map(self):
-        m = {}
+        m = {-1: ((), 0),
+             0: ((), 0)}
 
-        idx = 0
-        m[idx] = ((), 0)
-        idx += 1
+        idx = 1
+
 
         for a in [-1, 1]:
             for i in range(self.n_regions):
@@ -273,8 +283,13 @@ class AllocationEnv(gym.Env):
         a_mtx = np.zeros((self.n_regions, self.n_products))
         idx, val = self.action_map[action]
         a_mtx[idx] = val
+        if action == -1:
+            is_valid_action = False
+        else:
+            assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+            is_valid_action = True
 
-        return a_mtx
+        return a_mtx, is_valid_action
 
     @staticmethod
     def get_feasible_actions(board_config):
@@ -294,20 +309,12 @@ class AllocationEnv(gym.Env):
         return feasible_actions
 
     @staticmethod
-    def is_feasible_action(board_config, action):
+    def check_action(board_config, action):
         feasible_actions = AllocationEnv.get_feasible_actions(board_config)
         if action in feasible_actions:
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def check_action(board_config, action):
-        is_feasible = AllocationEnv.is_feasible_action(board_config, action)
-        if is_feasible:
             return action
         else:
-            return 0
+            return -1
 
 
 if __name__ == "__main__":
@@ -325,7 +332,7 @@ if __name__ == "__main__":
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 
-    model = DQN(MlpPolicy, env, verbose=2,learning_starts=50)
+    model = DQN(MlpPolicy, env, verbose=2,learning_starts=500,exploration_fraction=.75)
     model.learn(total_timesteps=1000)
 
     obs = env.reset()
@@ -334,5 +341,5 @@ if __name__ == "__main__":
         # TODO: add check for feasible action space
         action = 2
         action = AllocationEnv.check_action(obs['board_config'], action)
-        _, obs, rewards, dones, info = env.step([action])
+        obs, rewards, dones, info = env.step([action])
         print(obs)
