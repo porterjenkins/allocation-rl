@@ -1,10 +1,11 @@
 import os
 import sys
+import theano
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from envs.prior import Prior
 import config.config as cfg
 from envs.allocation_env import AllocationEnv
-
+theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
 
 N_ITER = int(sys.argv[1])
 N_SAMPLES = int(sys.argv[2])

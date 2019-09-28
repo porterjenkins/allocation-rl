@@ -25,16 +25,17 @@ class Features(object):
         feature_mtx = np.concatenate(features, axis=1)
         return feature_mtx
 
-
     @classmethod
     def feature_extraction(cls, df, prices, y_col=None):
         df['day_of_week'] = df['time'] % 7
 
-        day_features_grouped = df[['time', 'day_of_week']].groupby('time').max()
+        # day_features_grouped = df[['time', 'day_of_week']].groupby('time').max()
 
         region_features = pd.get_dummies(df.region, prefix='region')
         product_features = pd.get_dummies(df['product'], prefix='product')
-        day_features = pd.get_dummies(day_features_grouped['day_of_week'], prefix='day')
+        # day_features = pd.get_dummies(day_features_grouped['day_of_week'], prefix='day')
+        temporal_features = df["time"].astype(int)
+        temporal_features.values.reshape(-1, 1)
 
         if y_col is not None:
             y = df[y_col].values.astype(theano.config.floatX)
@@ -43,7 +44,7 @@ class Features(object):
 
         features = Features(region=region_features.values.astype(theano.config.floatX),
                             product=product_features.values.astype(theano.config.floatX),
-                            temporal=day_features.values.astype(theano.config.floatX),
+                            temporal=temporal_features.values.astype(theano.config.floatX),
                             lagged=df['prev_sales'].values.astype(theano.config.floatX),
                             prices=np.dot(product_features.values, prices).reshape(1, -1),
                             time_stamps=df['time'].values.astype(int),
