@@ -4,6 +4,27 @@ import numpy as np
 N_PRODUCTS = 15
 FLIP_PROB = 0.05
 
+def get_prev_sales(df):
+
+    prev_buff = {}
+    prev_sales = np.zeros(df.shape[0])
+
+    cntr = 0
+    for idx, row in df.iterrows():
+
+        prev_sales_i = prev_buff.get(row["UPC"], np.nan)
+        prev_sales[cntr] = prev_sales_i
+
+        prev_buff[row["UPC"]] = row["SALES"]
+
+        cntr += 1
+
+
+    df['PREV_SALES'] = prev_sales
+    return df
+
+
+
 def update_product_state(arr):
 
     scan = True
@@ -39,6 +60,7 @@ stores = pd.read_csv("store-level-data.csv")
 stores['DATE'] = pd.to_datetime(stores['DATE'])
 #stores['day_of_week'] = stores['DATE'].dt.dayofweek
 stores = stores[stores['SALES'] > 0.0]
+stores['SALES'] = stores['QUANTITY']*stores['PRICE']
 
 
 # metadata
@@ -104,7 +126,7 @@ def normalize(x):
 
 
 def estimate_spatial_q(df, cust):
-    new_cols = ['QUANTITY', 'REGION'] + list(df.columns)
+    new_cols = ['Q_R', 'REGION'] + list(df.columns)
     n_rows = df.shape[0]*n_regions[cust]
     n_cols = len(new_cols)
     mtx = np.zeros((n_rows, n_cols), dtype=object)
@@ -139,20 +161,41 @@ def estimate_spatial_q(df, cust):
     return pd.DataFrame(mtx, columns=new_cols)
 
 
-store1_clean = estimate_spatial_q(store1, STORE_SET[0])
-store2_clean = estimate_spatial_q(store2, STORE_SET[1])
+def update_sales(df):
+    df['SALES'] = df['Q_R']*df['PRICE']
+    return df
 
+def rename_features(df):
+    df.drop(labels=['PROMO', 'QUANTITY'], axis=1, inplace=True)
+    df.rename(columns={'Q_R': 'quantity',
+               'REGION': 'region',
+               'CUSTOMER': 'store_id',
+               'DATE': 'time',
+               'UPC': 'product',
+               'PRICE': 'price',
+               'SALES': 'sales',
+               'PREV_SALES': 'prev_sales'}, inplace=True)
 
+    return df
+
+store1 = get_prev_sales(store1)
+store2 = get_prev_sales(store2)
+
+store1_clean = update_sales(estimate_spatial_q(store1, STORE_SET[0]))
+store2_clean = update_sales(estimate_spatial_q(store2, STORE_SET[1]))
+
+store1_clean = rename_features(store1_clean)
+store2_clean = rename_features(store2_clean)
 # Split train/test
 
 def split(df, train_pct=.8):
-    dates = df['DATE'].unique()
+    dates = df['time'].unique()
     train_size = int(train_pct * len(dates))
     train_idx = dates[:train_size]
     test_idx = dates[train_size:]
 
-    train = df[df["DATE"].isin(train_idx)]
-    test = df[df["DATE"].isin(test_idx)]
+    train = df[df["time"].isin(train_idx)]
+    test = df[df["time"].isin(test_idx)]
 
     return train, test
 
