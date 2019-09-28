@@ -171,29 +171,41 @@ def update_features(df):
     df.dropna(inplace=True)
 
 
-    # get time stamps
+    # get time stamps and product codes
     date_map = {}
+    prod_map = {}
     time_stamps = np.zeros(df.shape[0])
+    prods = np.zeros(df.shape[0])
     date_cntr = 0
+    prod_cntr = 0
     row_cntr = 0
     for idx, row in df.iterrows():
+        # timestamps
         if row['DATE'] in date_map:
             ts = date_map[row['DATE']]
         else:
             ts = date_cntr
             date_map[row['DATE']] = date_cntr
             date_cntr += 1
+        # products
+        if row['UPC'] in prod_map:
+            prod_idx = prod_map[row['UPC']]
+        else:
+            prod_idx = prod_cntr
+            prod_map[row['UPC']] = prod_cntr
+            prod_cntr += 1
 
         time_stamps[row_cntr] = ts
+        prods[row_cntr] = prod_idx
         row_cntr += 1
     df['time'] = time_stamps
+    df['product'] = prods
     # Rename features
     df.drop(labels=['PROMO', 'QUANTITY'], axis=1, inplace=True)
     df.rename(columns={'Q_R': 'quantity',
                'REGION': 'region',
                'CUSTOMER': 'store_id',
                'DATE': 'date',
-               'UPC': 'product',
                'PRICE': 'price',
                'SALES': 'sales',
                'PREV_SALES': 'prev_sales'}, inplace=True)
