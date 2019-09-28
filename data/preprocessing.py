@@ -180,6 +180,26 @@ def estimate_spatial_q(df, cust):
 
     return pd.DataFrame(mtx, columns=new_cols)
 
+def update_timestamps(df):
+    date_map = {}
+    time_stamps = np.zeros(df.shape[0])
+    date_cntr = 0
+    row_cntr = 0
+    for idx, row in df.iterrows():
+        # timestamps
+        if row['date'] in date_map:
+            ts = date_map[row['date']]
+        else:
+            ts = date_cntr
+            date_map[row['date']] = date_cntr
+            date_cntr += 1
+
+        time_stamps[row_cntr] = ts
+        row_cntr += 1
+    df['time'] = time_stamps
+
+    return df
+
 
 def update_features(df):
 
@@ -190,22 +210,12 @@ def update_features(df):
     df.dropna(inplace=True)
 
 
-    # get time stamps and product codes
-    date_map = {}
+    # get product codes
     prod_map = {}
-    time_stamps = np.zeros(df.shape[0])
     prods = np.zeros(df.shape[0])
-    date_cntr = 0
     prod_cntr = 0
     row_cntr = 0
     for idx, row in df.iterrows():
-        # timestamps
-        if row['DATE'] in date_map:
-            ts = date_map[row['DATE']]
-        else:
-            ts = date_cntr
-            date_map[row['DATE']] = date_cntr
-            date_cntr += 1
         # products
         if row['UPC'] in prod_map:
             prod_idx = prod_map[row['UPC']]
@@ -214,10 +224,8 @@ def update_features(df):
             prod_map[row['UPC']] = prod_cntr
             prod_cntr += 1
 
-        time_stamps[row_cntr] = ts
         prods[row_cntr] = prod_idx
         row_cntr += 1
-    df['time'] = time_stamps
     df['product'] = prods
     # Rename features
     df.drop(labels=['PROMO', 'QUANTITY'], axis=1, inplace=True)
@@ -238,6 +246,8 @@ store2 = get_prev_sales(store2)
 store1_clean = update_features(estimate_spatial_q(store1, STORE_SET[0]))
 store2_clean = update_features(estimate_spatial_q(store2, STORE_SET[1]))
 
+store1_clean = update_timestamps(store1_clean)
+store2_clean = update_timestamps(store2_clean)
 
 # Split train/test
 
@@ -254,6 +264,14 @@ def split(df, train_pct=.8):
 
 store1_train, store1_test = split(store1_clean)
 store2_train, store2_test = split(store2_clean)
+
+store1_train = update_timestamps(store1_train)
+store1_test = update_timestamps(store1_test)
+
+store2_train = update_timestamps(store2_train)
+store2_test = update_timestamps(store2_test)
+
+
 
 store1_train.to_csv("store-1-train.csv")
 store2_train.to_csv("store-2-train.csv")
