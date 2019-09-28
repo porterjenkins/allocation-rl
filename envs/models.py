@@ -30,7 +30,7 @@ class LinearModel(Model):
         with pm.Model() as env_model:
 
             # Generate region weights
-            w_r = pm.MvNormal('w_r', mu=self.prior.loc_w_r, cov=self.prior.scale_w_r,
+            w_r = pm.MvNormal('w_r', mu=self.prior.loc_w_r, tau=self.prior.scale_w_r,
                               shape=self.n_regions)
 
             # Generate Product weights

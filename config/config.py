@@ -35,7 +35,7 @@ adj_mtx_vals['non_zero_entries'] = ast.literal_eval(adj_mtx_vals['non_zero_entri
 
 vals['adj_mtx'] = make_bin_mtx(adj_mtx_vals['non_zero_entries'], dims=(vals['n_regions'], vals['n_regions']))
 # A + I - multiply by identity matrix
-vals['adj_mtx'] = vals['adj_mtx'] + np.eye(vals['n_regions'])
+#vals['adj_mtx'] = vals['adj_mtx'] + np.eye(vals['n_regions'])
 
 # setup state matrices
 vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))

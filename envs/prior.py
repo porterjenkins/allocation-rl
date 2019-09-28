@@ -2,11 +2,7 @@ import numpy as np
 import json
 import config.config as cfg
 import numpy as np
-
-def check_pos_def(x):
-    is_pos_def = np.all(np.linalg.eigvals(x) >= 0)
-    if not is_pos_def:
-        raise Exception("Prior matrix is not positive semidefinite")
+from utils import get_norm_laplacian
 
 
 class Prior(object):
@@ -44,9 +40,10 @@ class Prior(object):
 
         # prior for region weights
         self.loc_w_r = self.__get_loc_val(prior['loc_w_r'], self.n_regions)
-        #self.scale_w_r = self.adj_mtx*prior['scale_w_r']
-        self.scale_w_r = np.eye(self.n_regions)*prior['scale_w_r']
-        check_pos_def(self.scale_w_r)
+        # Get normalized graph laplacian from adjacency matrix --> Used for precision matrix prior
+        L_norm = get_norm_laplacian(self.adj_mtx, self.n_regions)
+        # TODO: Check if we should multiply by scale factor
+        self.scale_w_r = L_norm*prior['scale_w_r']
         # prior for product wieghts
         self.loc_w_p = self.__get_loc_val(prior['loc_w_p'], self.n_products)
         self.scale_w_p = self.__get_scale_val(prior['loc_w_p'], self.n_products)
