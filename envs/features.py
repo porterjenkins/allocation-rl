@@ -20,7 +20,7 @@ class Features(object):
 
 
     def toarray(self):
-        features = [self.product, self.region, self.temporal, self.lagged.reshape(-1,1)]
+        features = [self.product, self.region, self.temporal[self.time_stamps, :], self.lagged.reshape(-1,1)]
 
         feature_mtx = np.concatenate(features, axis=1)
         return feature_mtx
