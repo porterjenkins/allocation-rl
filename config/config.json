@@ -1,14 +1,13 @@
 {
-    "n_regions": 4,
-    "n_products": 4,
+    "n_products": 15,
     "max_t": 25,
     "prices": [2.50, 4.99, 3.00, 1.20],
     "n_temporal_features": 7,
     "env_init_day": 0,
     "env_init_loc": "[(0,0), (0,2), (0,3)]",
-    "adj_mtx": "[(0,0), (1,1), (2,2), (3,3)]",
-    "train_data": "data/train-data-simple.csv",
-    "model_type": "hierarchical",
+    "adj_mtx_fname": "data/store-2-adj-mtx.json",
+    "train_data": "data/store-2-train.csv",
+    "model_type": "linear",
     "prior_fname": "envs/prior.json"
 
 }

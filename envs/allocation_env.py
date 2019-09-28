@@ -159,12 +159,15 @@ class AllocationEnv(gym.Env):
         else:
             raise ValueError("environment model has not been built. run build_env_mode()")
 
-    def train(self, n_iter, n_samples, fname='model.trace'):
+    def train(self, n_iter, n_samples, fname='model.trace', debug=False):
         self.__check_model()
         print("Beginning training job - iterations: {} samples: {}".format(n_iter,n_samples))
+        if debug:
+            for RV in self.env_model.basic_RVs:
+                print(RV.name, RV.logp(self.env_model.test_point))
         with self.env_model:
             inference = pm.ADVI()
-            approx = pm.fit(n=n_iter, method=inference)
+            approx = pm.fit(n=n_iter, method=inference, total_grad_norm_constraint=10)
             self.trace = approx.sample(draws=100)
             #self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
@@ -246,7 +249,7 @@ class AllocationEnv(gym.Env):
 
     def _load_data(self, model_path, train_data_path, load_model):
         train_data = pd.read_csv(train_data_path, index_col=0)
-        train_features = Features.feature_extraction(train_data, prices=cfg.vals['prices'], y_col='quantity')
+        train_features = Features.feature_extraction(train_data, y_col='quantity')
 
         self.X_region = theano.shared(train_features.region)
         self.X_product = theano.shared(train_features.product)
