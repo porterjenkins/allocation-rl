@@ -61,6 +61,7 @@ stores['DATE'] = pd.to_datetime(stores['DATE'])
 #stores['day_of_week'] = stores['DATE'].dt.dayofweek
 stores = stores[stores['SALES'] > 0.0]
 stores['SALES'] = stores['QUANTITY']*stores['PRICE']
+stores['day_of_week'] = stores['DATE'].dt.dayofweek
 
 
 # metadata
@@ -161,31 +162,52 @@ def estimate_spatial_q(df, cust):
     return pd.DataFrame(mtx, columns=new_cols)
 
 
-def update_sales(df):
-    df['SALES'] = df['Q_R']*df['PRICE']
-    return df
+def update_features(df):
 
-def rename_features(df):
+    # compute correct sales
+    df['SALES'] = df['Q_R']*df['PRICE']
+
+    # drop na - prev_sales
+    df.dropna(inplace=True)
+
+
+    # get time stamps
+    date_map = {}
+    time_stamps = np.zeros(df.shape[0])
+    date_cntr = 0
+    row_cntr = 0
+    for idx, row in df.iterrows():
+        if row['DATE'] in date_map:
+            ts = date_map[row['DATE']]
+        else:
+            ts = date_cntr
+            date_map[row['DATE']] = date_cntr
+            date_cntr += 1
+
+        time_stamps[row_cntr] = ts
+        row_cntr += 1
+    df['time'] = time_stamps
+    # Rename features
     df.drop(labels=['PROMO', 'QUANTITY'], axis=1, inplace=True)
     df.rename(columns={'Q_R': 'quantity',
                'REGION': 'region',
                'CUSTOMER': 'store_id',
-               'DATE': 'time',
+               'DATE': 'date',
                'UPC': 'product',
                'PRICE': 'price',
                'SALES': 'sales',
                'PREV_SALES': 'prev_sales'}, inplace=True)
+
 
     return df
 
 store1 = get_prev_sales(store1)
 store2 = get_prev_sales(store2)
 
-store1_clean = update_sales(estimate_spatial_q(store1, STORE_SET[0]))
-store2_clean = update_sales(estimate_spatial_q(store2, STORE_SET[1]))
+store1_clean = update_features(estimate_spatial_q(store1, STORE_SET[0]))
+store2_clean = update_features(estimate_spatial_q(store2, STORE_SET[1]))
 
-store1_clean = rename_features(store1_clean)
-store2_clean = rename_features(store2_clean)
+
 # Split train/test
 
 def split(df, train_pct=.8):
