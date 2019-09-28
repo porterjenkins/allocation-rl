@@ -159,9 +159,12 @@ class AllocationEnv(gym.Env):
         else:
             raise ValueError("environment model has not been built. run build_env_mode()")
 
-    def train(self, n_iter, n_samples, fname='model.trace'):
+    def train(self, n_iter, n_samples, fname='model.trace', debug=False):
         self.__check_model()
         print("Beginning training job - iterations: {} samples: {}".format(n_iter,n_samples))
+        if debug:
+            for RV in self.env_model.basic_RVs:
+                print(RV.name, RV.logp(self.env_model.test_point))
         with self.env_model:
             inference = pm.ADVI()
             approx = pm.fit(n=n_iter, method=inference)
