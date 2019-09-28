@@ -23,6 +23,7 @@ vals['prj_name'] =  vals['model_type'] + "-" + vals['train_data'].split("/")[1].
 vals['prj_root'] = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 vals['model_path'] = "{}/envs/{}.p".format(vals['prj_root'],vals['prj_name'])
 vals['train_data'] = vals['prj_root'] + "/" + vals['train_data']
+vals['test_data'] = vals['prj_root'] + "/" + vals['test_data']
 vals['prior_fname'] = vals['prj_root'] + "/" + vals['prior_fname']
 vals['adj_mtx_fname'] = vals['prj_root'] + "/" + vals['adj_mtx_fname']
 

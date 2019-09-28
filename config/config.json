@@ -7,7 +7,7 @@
     "env_init_loc": "[(0,0), (0,2), (0,3)]",
     "adj_mtx_fname": "data/store-1-adj-mtx.json",
     "train_data": "data/store-1-train.csv",
-    "test_data": "../data/store-1-test.csv",
+    "test_data": "/data/store-1-test.csv",
     "model_type": "linear",
     "prior_fname": "envs/prior.json"
 
