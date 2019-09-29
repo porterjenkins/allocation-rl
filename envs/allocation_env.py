@@ -254,6 +254,8 @@ class AllocationEnv(gym.Env):
 
     def _load_data(self, model_path, train_data_path, load_model):
         train_data = pd.read_csv(train_data_path, index_col=0)
+        # Remove zero quantity samples from training data
+        train_data = train_data[train_data['quantity'] > 0]
         train_features = Features.feature_extraction(train_data, y_col='quantity')
 
         self.X_region = theano.shared(train_features.region)
