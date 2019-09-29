@@ -1,10 +1,8 @@
 import os
 import sys
-import numpy
 import matplotlib.pyplot as plot
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 import config.config as cfg
 from envs.features import Features
@@ -21,5 +19,14 @@ test_data_features = Features.feature_extraction(test_data, y_col='quantity')
 TEST_X = test_data_features.toarray()
 TEST_Y = test_data_features.y
 
-print(TRAIN_Y)
-print(TEST_Y)
+
+linearRegression = LinearRegression()
+linearRegression.fit(TRAIN_X, TRAIN_Y)
+beta = linearRegression.coef_
+
+yPrediction = linearRegression.predict(TEST_X)
+
+plot.plot(TEST_Y, yPrediction, color='blue')
+
+plot.show()
+
