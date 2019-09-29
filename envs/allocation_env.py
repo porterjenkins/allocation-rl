@@ -17,6 +17,7 @@ from gym.utils import seeding
 import datetime
 from envs.models import LinearModel, HierarchicalModel
 import pickle
+import matplotlib.pyplot as plt
 
 
 class AllocationObservationSpace(Space):
@@ -171,6 +172,10 @@ class AllocationEnv(gym.Env):
             self.trace = approx.sample(draws=100)
             #self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
+        plt.plot(inference.hist)
+        plt.ylabel('ELBO')
+        plt.xlabel('iteration')
+        plt.show()
         #pm.save_trace(self.trace, directory=fname, overwrite=True)
 
         with open(fname, "wb") as f:
