@@ -21,3 +21,12 @@ def get_norm_laplacian(A, n_regions):
     check_pos_def(L_norm)
 
     return L_norm
+
+
+def mae(y_hat, y_true):
+    err = y_true - y_hat
+    return np.mean(np.abs(err))
+
+def rmse(y_hat, y_true):
+    err = y_true - y_hat
+    return np.mean(np.power(err, 2))

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
+import numpy as np
 
 
 def plot_region_product(df, n_product, n_region, fname, y_col='sales'):
@@ -55,6 +56,8 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
 
 def plot_total_ppc(df, draws, y_col='sales', fname='total-ppc.png'):
     totals = df[['time', y_col]].groupby('time').sum()
+    draws.reset_index(drop=True, inplace=True)
+    df.reset_index(drop=True, inplace=True)
     draws_all = pd.concat((df, draws), axis=1)
     draw_cols = list(range(draws.shape[1]))
     draw_sums = draws_all[['time'] + draw_cols].groupby('time').sum().values

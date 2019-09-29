@@ -48,7 +48,7 @@ class Features(object):
                             product=product_features.values.astype(theano.config.floatX),
                             temporal=day_features.astype(theano.config.floatX),
                             lagged=df['prev_sales'].values.astype(theano.config.floatX),
-                            prices=df['price'],
+                            prices=df['price'].values,
                             time_stamps=df['time'].values.astype(int),
                             product_idx=df['product'].values.astype(int),
                             y=y)
