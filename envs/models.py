@@ -45,13 +45,15 @@ class LinearModel(Model):
                               shape=self.n_temporal_features)
             lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
             #c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=25.0, shape=self.X_temporal.shape.eval()[0])
-            c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=100.0, shape=self.X_temporal.shape.eval()[0])
+            sigma_c_t = pm.InverseGamma("sigma_c_t",alpha=self.prior.loc_sigma_c_t, beta=self.prior.scale_sigma_c_t)
+            c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=sigma_c_t, shape=self.X_temporal.shape.eval()[0])
             c_all = c_t[self.time_stamps] * w_c
 
             lambda_q = pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T) + c_all + w_s * self.X_lagged
 
             #q_ij = pm.Normal('quantity_ij', mu=lambda_q, sigma=25.0, observed=self.y)
-            q_ij = pm.TruncatedNormal('quantity_ij', mu=lambda_q, sigma=100.0, lower=0.0, observed=self.y)
+            sigma_q_ij = pm.InverseGamma("sigma_q_ij",alpha=self.prior.loc_sigma_q_ij, beta=self.prior.scale_sigma_q_ij)
+            q_ij = pm.TruncatedNormal('quantity_ij', mu=lambda_q, sigma=sigma_q_ij, lower=0.0, observed=self.y)
 
         return env_model
 

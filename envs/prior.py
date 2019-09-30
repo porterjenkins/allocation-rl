@@ -56,6 +56,10 @@ class Prior(object):
         # prior for day
         self.loc_w_t = self.__get_loc_val(prior['loc_w_t'], self.n_temporal_features)
         self.scale_w_t = self.__get_scale_val(prior['loc_w_p'], self.n_temporal_features)
+        self.loc_sigma_q_ij = prior["loc_sigma_q_ij"]
+        self.scale_sigma_q_ij = prior["scale_sigma_q_ij"]
+        self.loc_sigma_c_t = prior["loc_sigma_c_t"]
+        self.scale_sigma_c_t = prior["scale_sigma_c_t"]
 
 
 if __name__ == "__main__":
