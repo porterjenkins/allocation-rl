@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 N_PRODUCTS = 15
 FLIP_PROB = 0.05
-TRAIN_DATA_PCT = .85
+TRAIN_DATA_PCT = .90
 
 def make_bin_mtx(arr, dims):
     mtx = np.zeros(dims)
