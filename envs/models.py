@@ -38,14 +38,14 @@ class LinearModel(Model):
                               shape=self.n_products)
             # Prior for customer weight
             w_c = pm.Normal('w_c', mu=self.prior.loc_w_c, sigma=self.prior.scale_w_c)
-            # Generate customer weight
-            w_s = pm.Gamma('w_s', mu=self.prior.loc_w_s, sigma=self.prior.scale_w_s)
+            # Generate sales weight
+            w_s = pm.TruncatedNormal('w_s', mu=self.prior.loc_w_s, sigma=self.prior.scale_w_s,lower=0.0)
             # Generate temporal weights
             w_t = pm.MvNormal('w_t', mu=self.prior.loc_w_t, cov=self.prior.scale_w_t,
                               shape=self.n_temporal_features)
             lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
             #c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=25.0, shape=self.X_temporal.shape.eval()[0])
-            c_t = pm.TruncatedNormal("customer_t", mu=lambda_c_t, sigma=100.0, lower=0, shape=self.X_temporal.shape.eval()[0])
+            c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=100.0, shape=self.X_temporal.shape.eval()[0])
             c_all = c_t[self.time_stamps] * w_c
 
             lambda_q = pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T) + c_all + w_s * self.X_lagged
