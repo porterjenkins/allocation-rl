@@ -224,7 +224,7 @@ class AllocationEnv(gym.Env):
         return self._get_state()
 
     def _load_data(self, model_path, train_data_path, load_model):
-        train_data = pd.read_csv(train_data_path, index_col=0)
+        train_data = pd.read_csv(train_data_path)
         # Remove zero quantity samples from training data
         train_data = train_data[train_data['quantity'] > 0]
         train_features = Features.feature_extraction(train_data, y_col='quantity')
@@ -345,4 +345,4 @@ if __name__ == "__main__":
         action = 2
         action = AllocationEnv.check_action(obs['board_config'], action)
         obs, rewards, dones, info = env.step([action])
-        print(obs)
+

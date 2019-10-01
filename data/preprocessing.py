@@ -84,8 +84,32 @@ def get_adj_mtx(fname):
     A = A + np.eye(adj_store['n_regions'])
     return A
 
+
+def get_year_lookback(df, filter_date):
+    ts = df[['DATE','CUSTOMER','UPC','SALES']]
+    ts['year'] = df['DATE'].dt.year
+    ts['week'] = df['DATE'].dt.week
+
+    means = ts.groupby(['CUSTOMER', 'UPC', 'year', 'week']).mean().reset_index()
+    means.rename(columns={'SALES': "SALES_PREV_YR", 'year': 'year_prev', 'week': 'week_prev'}, inplace=True)
+    df['DATE_PREV'] = df['DATE'] - timedelta(days=365)
+    df['year_prev'] = df['DATE_PREV'].dt.year
+    df['week_prev'] = df['DATE_PREV'].dt.week
+
+    out = pd.merge(df, means, left_on=['CUSTOMER', 'UPC','year_prev', 'week_prev'], right_on=['CUSTOMER', 'UPC', 'year_prev', 'week_prev'], how='left')
+    filter_date = pd.to_datetime(filter_date)
+    out = out[out['DATE'] >= filter_date]
+
+    prod_means = ts[['CUSTOMER', 'UPC','SALES']].groupby(['CUSTOMER', 'UPC']).mean()
+    prod_means.rename(columns={'SALES': "SALES_MEAN"}, inplace=True)
+
+    out = pd.merge(out, prod_means, on = ['CUSTOMER', 'UPC'])
+    out['SALES_PREV_YR'] = np.where(np.isnan(out['SALES_PREV_YR']), out['SALES_MEAN'], out['SALES_PREV_YR'])
+
+    return out.sort_values(by='DATE')
+
 # Import store, sales data
-stores = pd.read_csv("store-level-data.csv")
+stores = pd.read_csv("store-level-data-17-19.csv")
 stores['DATE'] = pd.to_datetime(stores['DATE'])
 #stores['day_of_week'] = stores['DATE'].dt.dayofweek
 stores = stores[stores['SALES'] > 0.0]
@@ -95,6 +119,10 @@ stores['SALES'] = np.log(stores['QUANTITY']*stores['PRICE'])
 #stores['SALES'] = (stores['SALES'] - stores['SALES'].mean()) / np.std(stores['SALES'])
 #stores['SALES_2'] = np.power(stores["SALES"], 2)
 stores['day_of_week'] = stores['DATE'].dt.dayofweek
+
+stores = get_year_lookback(stores, filter_date='2018-07-31')
+
+
 
 mean_sales = stores[["CUSTOMER", "UPC", "SALES"]].groupby(["CUSTOMER", "UPC"]).mean()
 mean_sales = mean_sales['SALES'].to_dict()
@@ -114,7 +142,7 @@ STORE_SET = [600055785, 600055679]
 
 # Get Product set
 # Top 15 products
-top_prods = stores[['UPC', 'SALES']].groupby('UPC').sum().sort_values("SALES", ascending=False)[:N_PRODUCTS].reset_index()
+top_prods = stores[['UPC', 'SALES']].groupby('UPC').sum().sort_values("SALES", ascending=False).reset_index()[:N_PRODUCTS]
 PROD_SET = top_prods["UPC"].values
 
 global prod_to_idx
@@ -256,6 +284,7 @@ def update_features(df):
                'CUSTOMER': 'store_id',
                'DATE': 'date',
                'PRICE': 'price',
+                'SALES_PREV_YR': 'sales_prev_yr',
                'SALES': 'sales',
                'PREV_SALES': 'prev_sales', 'PREV_SALES_2': 'prev_sales_'}, inplace=True)
 
@@ -295,11 +324,11 @@ store2_test = update_timestamps(store2_test)
 
 
 
-store1_train.to_csv("store-1-train.csv")
-store2_train.to_csv("store-2-train.csv")
+store1_train.to_csv("store-1-train.csv", index=False)
+store2_train.to_csv("store-2-train.csv", index=False)
 
-store1_test.to_csv("store-1-test.csv")
-store2_test.to_csv("store-2-test.csv")
+store1_test.to_csv("store-1-test.csv", index=False)
+store2_test.to_csv("store-2-test.csv", index=False)
 
-store1_clean.to_csv("store-1-all.csv")
-store2_clean.to_csv("store-2-all.csv")
+store1_clean.to_csv("store-1-all.csv", index=False)
+store2_clean.to_csv("store-2-all.csv", index=False)
