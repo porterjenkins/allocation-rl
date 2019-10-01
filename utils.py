@@ -1,4 +1,5 @@
 import numpy as np
+import datetime
 
 
 def check_pos_def(x):
@@ -21,3 +22,23 @@ def get_norm_laplacian(A, n_regions):
     check_pos_def(L_norm)
 
     return L_norm
+
+
+def mae(y_hat, y_true):
+    err = y_true - y_hat
+    return np.mean(np.abs(err))
+
+def rmse(y_hat, y_true):
+    err = y_true - y_hat
+    return np.mean(np.power(err, 2))
+
+def check_draws_inf(draws):
+    is_inf = np.isinf(draws)
+    is_inf_sums = is_inf.sum(axis=0)
+    draws[is_inf] = np.nan
+    means = np.nanmean(draws, axis=0)
+    for col in range(draws.shape[1]):
+        draws[is_inf[:, col], col] = means[col]
+        if is_inf_sums[col] == draws.shape[0]:
+            raise Exception("All draws are inf for sample: {}".format(col))
+    return draws
