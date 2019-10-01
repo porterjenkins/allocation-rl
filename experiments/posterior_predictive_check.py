@@ -19,6 +19,7 @@ y_train = train_data['sales'].values
 
 test_data = pd.read_csv(cfg.vals['test_data'])
 test_data = test_data[test_data.quantity > 0.0]
+#test_data = test_data[test_data.time > 3.0]
 test_data_features = Features.feature_extraction(test_data, y_col='quantity')
 
 y_test = test_data['sales'].values

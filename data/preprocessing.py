@@ -2,9 +2,11 @@ import pandas as pd
 import numpy as np
 import json
 import ast
+from datetime import datetime, timedelta
 
 N_PRODUCTS = 15
 FLIP_PROB = 0.05
+TRAIN_DATA_PCT = .90
 
 def make_bin_mtx(arr, dims):
     mtx = np.zeros(dims)
@@ -12,7 +14,7 @@ def make_bin_mtx(arr, dims):
         mtx[idx] = 1.0
     return mtx
 
-def get_prev_sales(df):
+def get_prev_sales(df, means, means_by_day):
 
     prev_buff = {}
     prev_sales = np.zeros(df.shape[0])
@@ -20,10 +22,22 @@ def get_prev_sales(df):
     cntr = 0
     for idx, row in df.iterrows():
 
-        prev_sales_i = prev_buff.get(row["UPC"], np.nan)
+        prev_date = (row['DATE'] - timedelta(days=1)).timestamp()
+        prev_day_of_week = (row['DATE'] - timedelta(days=1)).dayofweek
+        curr_date = row['DATE'].timestamp()
+
+        # find mean value by day. If doesn't exist, use customer/upc mean
+        #mean_val = means_by_day.get((row['CUSTOMER'], row["UPC"], prev_day_of_week), np.nan)
+        #if np.isnan(mean_val):
+            #mean_val = means[(row['CUSTOMER'], row["UPC"])]
+        mean_val = means[(row['CUSTOMER'], row["UPC"])]
+        mean_val = means_by_day.get((row['CUSTOMER'], row["UPC"]), mean_val)
+
+        prev_sales_i = prev_buff.get((row['CUSTOMER'], row["UPC"], prev_date), mean_val)
         prev_sales[cntr] = prev_sales_i
 
-        prev_buff[row["UPC"]] = row["SALES"]
+        prev_buff[row['CUSTOMER'], row["UPC"], curr_date] = row["SALES"]
+
 
         cntr += 1
 
@@ -75,9 +89,18 @@ stores = pd.read_csv("store-level-data.csv")
 stores['DATE'] = pd.to_datetime(stores['DATE'])
 #stores['day_of_week'] = stores['DATE'].dt.dayofweek
 stores = stores[stores['SALES'] > 0.0]
-stores['SALES'] = stores['QUANTITY']*stores['PRICE']
+# log of sales
+stores['SALES'] = np.log(stores['QUANTITY']*stores['PRICE'])
+## Standadarze sales data ([x - mu] / sd)
+#stores['SALES'] = (stores['SALES'] - stores['SALES'].mean()) / np.std(stores['SALES'])
+#stores['SALES_2'] = np.power(stores["SALES"], 2)
 stores['day_of_week'] = stores['DATE'].dt.dayofweek
 
+mean_sales = stores[["CUSTOMER", "UPC", "SALES"]].groupby(["CUSTOMER", "UPC"]).mean()
+mean_sales = mean_sales['SALES'].to_dict()
+
+mean_sales_day = stores[["CUSTOMER", "UPC", "day_of_week", "SALES"]].groupby(["CUSTOMER", "UPC", "day_of_week"]).mean()
+mean_sales_day = mean_sales_day["SALES"].to_dict()
 
 # metadata
 store_ids = pd.read_csv("stores.csv")
@@ -205,7 +228,6 @@ def update_features(df):
 
     # compute correct sales
     df['SALES'] = df['Q_R']*df['PRICE']
-
     # drop na - prev_sales
     df.dropna(inplace=True)
 
@@ -235,13 +257,13 @@ def update_features(df):
                'DATE': 'date',
                'PRICE': 'price',
                'SALES': 'sales',
-               'PREV_SALES': 'prev_sales'}, inplace=True)
+               'PREV_SALES': 'prev_sales', 'PREV_SALES_2': 'prev_sales_'}, inplace=True)
 
 
     return df
 
-store1 = get_prev_sales(store1)
-store2 = get_prev_sales(store2)
+store1 = get_prev_sales(store1, means=mean_sales, means_by_day=mean_sales_day)
+store2 = get_prev_sales(store2, means=mean_sales, means_by_day=mean_sales_day)
 
 store1_clean = update_features(estimate_spatial_q(store1, STORE_SET[0]))
 store2_clean = update_features(estimate_spatial_q(store2, STORE_SET[1]))
@@ -262,8 +284,8 @@ def split(df, train_pct=.8):
 
     return train, test
 
-store1_train, store1_test = split(store1_clean)
-store2_train, store2_test = split(store2_clean)
+store1_train, store1_test = split(store1_clean, train_pct=TRAIN_DATA_PCT)
+store2_train, store2_test = split(store2_clean, train_pct=TRAIN_DATA_PCT)
 
 store1_train = update_timestamps(store1_train)
 store1_test = update_timestamps(store1_test)

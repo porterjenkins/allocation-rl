@@ -167,15 +167,15 @@ class AllocationEnv(gym.Env):
             for RV in self.env_model.basic_RVs:
                 print(RV.name, RV.logp(self.env_model.test_point))
         with self.env_model:
-            inference = pm.ADVI()
-            approx = pm.fit(n=n_iter, method=inference, total_grad_norm_constraint=10)
-            self.trace = approx.sample(draws=100)
-            #self.trace = pm.sample(n_samples, tune=tune, init='advi+adapt_diag')
-            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples)
-        plt.plot(inference.hist)
-        plt.ylabel('ELBO')
-        plt.xlabel('iteration')
-        plt.show()
+            #inference = pm.ADVI()
+            #approx = pm.fit(n=n_iter, method=inference, total_grad_norm_constraint=10)
+            #self.trace = approx.sample(draws=100)
+            self.trace = pm.sample(n_samples, tune=n_iter, init='advi+adapt_diag')
+            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=1000)
+        #plt.plot(inference.hist)
+        #plt.ylabel('ELBO')
+        #plt.xlabel('iteration')
+        #plt.show()
         #pm.save_trace(self.trace, directory=fname, overwrite=True)
 
         with open(fname, "wb") as f:
