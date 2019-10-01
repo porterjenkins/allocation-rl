@@ -13,14 +13,14 @@ from policies.deepq.dqn import DQN
 
 
 
-TIME_STEPS = 25
+TIME_STEPS = 250
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 n_actions = env.n_actions
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-model = DQN(MlpPolicy, env, verbose=2, learning_starts=500, exploration_fraction=.75)
+model = DQN(MlpPolicy, env, verbose=2, learning_starts=100, exploration_fraction=.75)
 model.learn(total_timesteps=TIME_STEPS)
 print(model.cumul_reward)
 
@@ -30,4 +30,4 @@ x = np.arange(TIME_STEPS+1)
 plt.plot(x, model.cumul_reward)
 plt.xlabel("Timestep (t)")
 plt.ylabel("Cumulative Reward")
-plt.show()
+plt.savefig("figs/{}-learning-curve.png".format(cfg.vals['prj_name']))
