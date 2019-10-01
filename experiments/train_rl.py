@@ -6,42 +6,28 @@ from envs.allocation_env import AllocationEnv
 import config.config as cfg
 import matplotlib.pyplot as plt
 import numpy as np
-
-from stable_baselines.ddpg.policies import MlpPolicy
+import gym
+from policies.deepq.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
-from stable_baselines import DDPG
+from policies.deepq.dqn import DQN
+
+
+
+TIME_STEPS = 25
 
 prior = Prior(config=cfg.vals)
+env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+n_actions = env.n_actions
+env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-env = AllocationEnv(config=cfg.vals, prior=prior)
-env.reset()
-# a = np.zeros((4, 4))
-# a[3, 3] = 1.0
-# state = env.reset()
-# ob, reward, epsode_over, info = env.step(a)
-# print(ob)
-
-history = []
-T = 10
-
-model = DDPG(MlpPolicy, env, verbose=1)
-model.learn(total_timesteps=400000)
-#model.save("tmp-agent")
-
-ob = env.reset()
-for i in range(T):
-    print("t = {}".format(i+1))
-    #a = env.action_space.sample()-1
-    action, _states = model.predict(ob)
-    print("**action**")
-    print(a)
-    # TODO: check if feasible action here
-    ob, reward, epsode_over, info = env.step(action)
-    history.append(reward)
-    print(ob)
-    print("r: {}".format(reward))
+model = DQN(MlpPolicy, env, verbose=2, learning_starts=500, exploration_fraction=.75)
+model.learn(total_timesteps=TIME_STEPS)
+print(model.cumul_reward)
 
 
-plt.plot(np.arange(T), history)
+
+x = np.arange(TIME_STEPS+1)
+plt.plot(x, model.cumul_reward)
+plt.xlabel("Timestep (t)")
+plt.ylabel("Cumulative Reward")
 plt.show()

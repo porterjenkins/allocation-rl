@@ -242,6 +242,7 @@ class DQN(OffPolicyRLModel):
                                               final_p=self.exploration_final_eps)
 
             episode_rewards = [0.0]
+            self.cumul_reward = [0.0]
             episode_successes = []
             obs = self.env.reset()
             reset = True
@@ -293,6 +294,7 @@ class DQN(OffPolicyRLModel):
                                                                       self.num_timesteps)
 
                 episode_rewards[-1] += rew
+                self.cumul_reward.append(self.cumul_reward[-1] + rew)
                 if done:
                     maybe_is_success = info.get('is_success')
                     if maybe_is_success is not None:
