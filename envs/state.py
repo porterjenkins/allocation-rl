@@ -14,7 +14,7 @@ class State(object):
             -  A matrix (n_regions x n_products)
     """
 
-    def __init__(self, day, day_vec, board_config, prev_sales):
+    def __init__(self, day, day_vec, board_config, prev_sales, prices):
         self.day = day
         self.day_vec = day_vec
         self.board_config = board_config
@@ -24,6 +24,7 @@ class State(object):
         self._items = list(zip(self._regions, self._products))
         self._product_mask = State.get_mask(self._products, cfg.vals['n_products'])
         self.curr_sales = None
+        self.prices = prices
 
     def __str__(self):
         s = "day:\n{}\nboard:\n{}\n prev_sales:\n{}".format(self.day_vec, self.board_config, self.prev_sales)
@@ -75,6 +76,10 @@ class State(object):
 
         return mask
 
+    @staticmethod
+    def get_avg_prices(df):
+        mean_prices = df[['product', 'price']].groupby('product').mean()
+        return mean_prices['price'].to_dict()
 
     @classmethod
     def __init_prev_sales_means(cls, df):
@@ -89,11 +94,14 @@ class State(object):
         else:
             prev_sales = config['prev_sales']
 
+        mean_prices = State.get_avg_prices(train_data)
+
         day_vec = State.get_day_vec(config['env_init_day'])
         state = State(day=config['env_init_day'],
                       day_vec=day_vec,
                       board_config=config['env_init_loc'],
-                      prev_sales=prev_sales)
+                      prev_sales=prev_sales,
+                      prices=mean_prices)
 
         print("------Intial State------")
         print(state)

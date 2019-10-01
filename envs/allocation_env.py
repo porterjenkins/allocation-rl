@@ -130,7 +130,6 @@ class AllocationEnv(gym.Env):
             raise ValueError("Environment model has not been loaded or trained. Try re-training or set load_model=True")
 
     def train(self, n_iter, n_samples, fname='model.trace', debug=False):
-        self.__check_model()
         print("Beginning training job - iterations: {} samples: {}".format(n_iter,n_samples))
         if debug:
             for RV in self.env_model.basic_RVs:
@@ -195,21 +194,15 @@ class AllocationEnv(gym.Env):
 
     def _check_episode_over(self, reward):
         '''
-        The episode end is to be decided
-        :param reward:
-        :return:
-        '''
-        self.time_step_cntr += 1
+                The episode end is to be decided
+                :param reward:
+                :return:
+                '''
         self.cnt_reward_not_reduce_round += 1
-        if self.time_step_cntr >= self.max_rollouts:
+        if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
             return True
         else:
             return False
-
-        #if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
-        #    return True
-        #else:
-        #    return False
 
     def _get_state(self):
         return Features.featurize_state_saperate(self.state)

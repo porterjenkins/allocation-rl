@@ -108,7 +108,7 @@ class Features(object):
             print(state)
             print(state._regions)
             print(state._products)
-        prices = np.array(cfg.vals['prices'])[state._products]
+        prices = np.array([state.prices[x] for x in state._products])
         prev_sales = Features._get_lagged_features(state.prev_sales, state._items)
         y = np.ones(n_rows).astype(theano.config.floatX)
 

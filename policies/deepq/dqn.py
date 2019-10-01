@@ -279,6 +279,7 @@ class DQN(OffPolicyRLModel):
                 env_action = action
                 new_obs, rew, done, info = self.env.step(env_action)
                 print("action: {} - reward: {}".format(action, rew))
+                print(new_obs['day_vec'])
                 print(new_obs['board_config'])
                 # Store transition in the replay buffer.
                 self.replay_buffer.add(self._get_vec_observation(obs), action, rew,
