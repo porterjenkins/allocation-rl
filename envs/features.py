@@ -100,9 +100,14 @@ class Features(object):
         n_rows = len(state._products)
 
         time_stamps = np.array([state.day]*n_rows)
-        day_features = Features._get_one_hot_features_single_ts(time_stamps, cfg.vals['n_temporal_features'])
-        product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
-        region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
+        try:
+            day_features = Features._get_one_hot_features_single_ts(time_stamps, cfg.vals['n_temporal_features'])
+            product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
+            region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
+        except:
+            print(state)
+            print(state._regions)
+            print(state._products)
         prices = np.array(cfg.vals['prices'])[state._products]
         prev_sales = Features._get_lagged_features(state.prev_sales, state._items)
         y = np.ones(n_rows).astype(theano.config.floatX)
@@ -118,6 +123,18 @@ class Features(object):
                             y=y)
 
         return features
+
+    @classmethod
+    def featurize_state_saperate(cls, state):
+        '''
+        get the state features into an array list
+        :param state:
+        :return: an numpy array
+        [ [1*7],
+          [4*4],
+          [4*4] ]
+        '''
+        return {"day_vec": state.day_vec, "board_config": state.board_config, "prev_sales": state.prev_sales}
 
 
 if __name__ == "__main__":

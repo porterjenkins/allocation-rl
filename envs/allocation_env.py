@@ -1,3 +1,4 @@
+import tensorflow as tf
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -11,53 +12,13 @@ import config.config as cfg
 from envs.features import Features
 from envs.state import State
 import gym
-from gym import Space
+
 from gym import error, spaces, utils
 from gym.utils import seeding
 import datetime
 from envs.models import LinearModel, HierarchicalModel
 import pickle
 import matplotlib.pyplot as plt
-
-
-class AllocationObservationSpace(Space):
-    """
-    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0.38867918]
-
-    """
-
-    def __init__(self, size):
-        assert isinstance(size, int) and size > 0
-        self.size = size
-        super(Space, self).__init__()
-
-    def sample(self):
-        """
-        Generates a single random sample .
-        In creating a sample o, each coordinate is sampled according to
-        the form of the interval:
-        """
-        return np.append(gym.spaces.MultiBinary(self.size-1).sample(),
-               gym.spaces.Box(low=0, high=np.inf, shape=(1,)).sample())
-
-    def contains(self, x):
-        if isinstance(x, list):
-            x = np.array(x)  # Promote list to array for contains check
-        if x.shape[0] == self.size:
-            if gym.spaces.MultiBinary(self.size-1).contains(x[:-1]) and \
-                    gym.spaces.Box(low=0, high=np.inf, shape=(1,)).contains(x[-1:]):
-                return True
-            else:
-                False
-        else:
-            return False
-
-    def __repr__(self):
-        return "AllocationObservationSpace({})".format(self.size)
-
-    def __eq__(self, other):
-        return self.size == other.size
-
 
 class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
@@ -74,29 +35,37 @@ class AllocationEnv(gym.Env):
         self.env_model = None
         self.trace = None
         self.posterior_samples = 25
+        self.max_rollouts = 3 # 90 day rollouts
         self.sales = []
         self.seed()
         self.viewer = None
         self.state = None
+        self.n_actions = 1 + self.n_regions*self.n_products*2
 
         self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
 
         self.cnt_reward_not_reduce_round = 0
+        self.time_step_cntr = 0
         self.max_cnt_reward_not_reduce_round = self.metadata['max_cnt_reward_not_reduce_round']
 
         observation_shape = list(self.feature_shape)
         observation_shape[-1] = observation_shape[-1] + 1
         observation_shape = tuple(observation_shape)
 
-        # todo modify the action space and observation space
-        self.action_space = spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products), dtype=np.int8)
-        self.observation_space = AllocationObservationSpace(observation_shape[-1])
-
+        self.action_space = spaces.Discrete(self.n_actions)
+        self.observation_space = spaces.Dict({"day_vec": gym.spaces.MultiBinary(7),
+                                              "board_config": spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products),
+                                                          dtype=np.int8),
+                                              "prev_sales": spaces.Box(low=0, high=np.inf, shape=(self.n_regions, self.n_products),
+                                                          dtype=np.float32)}
+                                              )
+        self.action_map = self.build_action_map()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
 
     def step(self, action):
         '''
@@ -108,11 +77,11 @@ class AllocationEnv(gym.Env):
                 episode_over: boolean, indicates whether it is the episode end
                 info: additional info for the
         '''
-        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        # TODO: check if action is feasible
+
+        action, is_valid_action = self.map_agent_action(action)
         self._take_action(action)
 
-        reward = self._get_reward()
+        reward = self._get_reward(is_valid_action)
 
         ob = self._get_state()
 
@@ -155,10 +124,10 @@ class AllocationEnv(gym.Env):
         return model.build()
 
     def __check_model(self):
-        if self.env_model is not None:
+        if self.trace is not None:
             return None
         else:
-            raise ValueError("environment model has not been built. run build_env_mode()")
+            raise ValueError("Environment model has not been loaded or trained. Try re-training or set load_model=True")
 
     def train(self, n_iter, n_samples, fname='model.trace', debug=False):
         self.__check_model()
@@ -213,7 +182,7 @@ class AllocationEnv(gym.Env):
         self.state = self.init_state
         self.cnt_reward_not_reduce_round = 0
         self.viewer = None
-
+        print("*************************Resetting Environment")
         return self._get_state()
 
     def render(self, action, mode='allocation'):
@@ -230,17 +199,26 @@ class AllocationEnv(gym.Env):
         :param reward:
         :return:
         '''
+        self.time_step_cntr += 1
         self.cnt_reward_not_reduce_round += 1
-        if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
+        if self.time_step_cntr >= self.max_rollouts:
             return True
         else:
             return False
 
-    def _get_state(self):
-        return self.state
+        #if self.cnt_reward_not_reduce_round > self.max_cnt_reward_not_reduce_round:
+        #    return True
+        #else:
+        #    return False
 
-    def _get_reward(self):
-        r = self.state.prev_sales.sum()
+    def _get_state(self):
+        return Features.featurize_state_saperate(self.state)
+
+    def _get_reward(self, is_valid_action):
+        if is_valid_action:
+            r = self.state.prev_sales.sum()
+        else:
+            r = -1.0
         return r
 
     def _take_action(self, action):
@@ -277,6 +255,9 @@ class AllocationEnv(gym.Env):
 
         if load_model:
 
+            if not os.path.exists(model_path):
+                raise Exception("Model file {} does not exist. Run train.py and try again".format(model_path))
+
             with open(model_path, 'rb') as f:
                 self.trace = pickle.load(f)
 
@@ -285,8 +266,90 @@ class AllocationEnv(gym.Env):
             ts = datetime.datetime.now()
             print("Environment model read from disk: {}".format(ts))
 
+    def _convert_to_categorical(self, action):
+        action = action.astype(int)
+        num_class = self.n_regions*self.n_products*3
+        return np.eye(num_class)[action]
+
+    def build_action_map(self):
+        m = {-1: ((), 0),
+             0: ((), 0)}
+
+        idx = 1
+
+
+        for a in [-1, 1]:
+            for i in range(self.n_regions):
+                for j in range(self.n_products):
+
+                    m[idx] = ((i,j), a)
+
+                    idx += 1
+
+        return m
+
+    def map_agent_action(self, action):
+
+        a_mtx = np.zeros((self.n_regions, self.n_products))
+        idx, val = self.action_map[action]
+        a_mtx[idx] = val
+        if action == -1:
+            is_valid_action = False
+        else:
+            assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
+            is_valid_action = True
+
+        return a_mtx, is_valid_action
+
+    @staticmethod
+    def get_feasible_actions(board_config):
+        curr_board = board_config.flatten()
+        board_positive = curr_board + 1
+        board_negative = curr_board - 1
+
+        # add one to account for null action: idx = 0
+        valid_neg_moves = set(np.where(board_negative > -1)[0] + 1)
+        # to get correct action indices add one plus number of possible negative moves (n_regions * n_products)
+        valid_pos_moves = set(np.where(board_positive < 2)[0] + curr_board.shape[0] + 1)
+        feasible_actions = valid_pos_moves.union(valid_neg_moves)
+
+        # null action: do nothing:
+        feasible_actions = feasible_actions.union(set([0]))
+
+        return feasible_actions
+
+    @staticmethod
+    def check_action(board_config, action):
+        feasible_actions = AllocationEnv.get_feasible_actions(board_config)
+        if action in feasible_actions:
+            return action
+        else:
+            return -1
+
 
 if __name__ == "__main__":
+    import gym
+
+    from policies.deepq.policies import MlpPolicy
+    from stable_baselines.common.vec_env import DummyVecEnv
+    from policies.deepq.dqn import DQN
+
     prior = Prior(config=cfg.vals)
 
-    env = AllocationEnv(config=cfg.vals, prior=prior)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+
+    n_actions = env.n_actions
+    env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
+
+
+    model = DQN(MlpPolicy, env, verbose=2,learning_starts=500,exploration_fraction=.75)
+    model.learn(total_timesteps=1000)
+
+    obs = env.reset()
+    for i in range(10):
+        action, _states = model.predict(obs)
+        # TODO: add check for feasible action space
+        action = 2
+        action = AllocationEnv.check_action(obs['board_config'], action)
+        obs, rewards, dones, info = env.step([action])
+        print(obs)
