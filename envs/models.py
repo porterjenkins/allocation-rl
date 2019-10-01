@@ -85,22 +85,25 @@ class HierarchicalModel(Model):
                               shape=self.n_products)
 
             # Prior for customer weight
-            w_c = pm.Normal('w_c', mu=self.prior.loc_w_c, sigma=self.prior.scale_w_c)
+            #w_c = pm.Normal('w_c', mu=self.prior.loc_w_c, sigma=self.prior.scale_w_c)
 
             # Generate customer weight
-            w_s = pm.Gamma('w_s', mu=self.prior.loc_w_s, sigma=self.prior.scale_w_s)
+            w_s = pm.TruncatedNormal('w_s', mu=self.prior.loc_w_s, sigma=self.prior.scale_w_s, lower=0.0)
 
             # Generate temporal weights
             w_t = pm.MvNormal('w_t', mu=self.prior.loc_w_t, cov=self.prior.scale_w_t,
                               shape=self.n_temporal_features)
             lambda_c_t = pm.math.dot(self.X_temporal, w_t.T)
 
-            c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=25.0,shape=self.X_temporal.shape.eval()[0])
-            c_all = c_t[self.time_stamps] * w_c
+            #c_t = pm.Normal("customer_t", mu=lambda_c_t, sigma=25.0,shape=self.X_temporal.shape.eval()[0])
+            #c_all = c_t[self.time_stamps] * w_c
 
-            lambda_q = pm.math.sum(self.X_region * w_r_ij[self.product_idx], axis=1) + pm.math.dot(self.X_product, w_p.T) + \
-                       c_all + w_s * self.X_lagged
+            bias_q = pm.Normal("bias_q", mu=0.0, sigma=25.0)
+            lambda_q = bias_q + pm.math.sum(self.X_region * w_r_ij[self.product_idx], axis=1) + pm.math.dot(self.X_product, w_p.T) + \
+                       lambda_c_t[self.time_stamps] + w_s * self.X_lagged
 
-            q_ij = pm.Normal('quantity_ij', mu=lambda_q, sigma=25.0, observed=self.y)
+            sigma_q_ij = pm.InverseGamma("sigma_q_ij", alpha=self.prior.loc_sigma_q_ij,
+                                         beta=self.prior.scale_sigma_q_ij)
+            q_ij = pm.TruncatedNormal('quantity_ij', mu=lambda_q, sigma=sigma_q_ij, lower=0.0, observed=self.y)
 
         return env_model
