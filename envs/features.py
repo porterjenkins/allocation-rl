@@ -62,8 +62,10 @@ class Features(object):
         return day_features
 
     @classmethod
-    def _get_lagged_features(cls, prev_sales, items):
+    def _get_lagged_features(cls, prev_sales, items, log=True):
         prev_sales = np.array([prev_sales[i] for i in items])
+        if log:
+            prev_sales = np.log(prev_sales)
         return prev_sales
 
     @classmethod
