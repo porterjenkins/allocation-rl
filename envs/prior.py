@@ -14,6 +14,7 @@ class Prior(object):
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
         self.adj_mtx = config['adj_mtx']
+        self.precision_mtx = config['precision_mtx']
         self.__get_priors(self.fname)
 
 
@@ -41,9 +42,12 @@ class Prior(object):
         # prior for region weights
         self.loc_w_r = self.__get_loc_val(prior['loc_w_r'], self.n_regions)
         # Get normalized graph laplacian from adjacency matrix --> Used for precision matrix prior
-        L_norm = get_norm_laplacian(self.adj_mtx, self.n_regions)
-        # TODO: Check if we should multiply by scale factor
-        self.scale_w_r = L_norm*prior['scale_w_r']
+        if self.precision_mtx:
+            L_norm = get_norm_laplacian(self.adj_mtx, self.n_regions)
+            # TODO: Check if we should multiply by scale factor
+            self.scale_w_r = L_norm*prior['scale_w_r']
+        else:
+            self.scale_w_r = np.eye(self.n_regions)*prior['scale_w_r']
         # prior for product wieghts
         self.loc_w_p = self.__get_loc_val(prior['loc_w_p'], self.n_products)
         self.scale_w_p = self.__get_scale_val(prior['loc_w_p'], self.n_products)
@@ -63,5 +67,4 @@ class Prior(object):
 
 
 if __name__ == "__main__":
-    prior = Prior(config=cfg.vals,
-                  fname='prior.json')
+    prior = Prior(config=cfg.vals)
