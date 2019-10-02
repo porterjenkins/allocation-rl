@@ -48,7 +48,7 @@ def get_prev_sales(df, means, means_by_day):
 
 
 def update_product_state(arr):
-
+    arr_update = arr.copy()
     scan = True
     while scan:
 
@@ -56,12 +56,14 @@ def update_product_state(arr):
             flip = np.random.random()
 
             if flip < FLIP_PROB:
-                arr[i] = 1 - arr[i]
+                arr_update[i] = 1 - arr[i]
 
-        if arr.sum() > 0:
+
+        if arr_update.sum() > 0:
             scan = False
 
-    return arr
+    actions = arr - arr_update
+    return arr_update, actions
 
 
 def init_state(mtx):
@@ -71,7 +73,7 @@ def init_state(mtx):
         for i in range(dims[0]):
 
             r = mtx[:, j]
-            r_update = update_product_state(r)
+            r_update, _ = update_product_state(r)
             mtx[:, j] = r_update
 
     return mtx
@@ -201,7 +203,7 @@ def estimate_spatial_q(df, cust):
     n_rows = df.shape[0]*n_regions[cust]
     n_cols = len(new_cols)
     mtx = np.zeros((n_rows, n_cols), dtype=object)
-
+    action_mtx = np.zeros((n_rows, n_regions[cust]))
 
     cntr = 0
     start_idx = 0
@@ -216,7 +218,7 @@ def estimate_spatial_q(df, cust):
             print(prod_to_idx)
         state_vec = state[cust][:, prod_idx]
         w = normalize(w * state_vec)
-        updated_state = update_product_state(state_vec)
+        updated_state, action = update_product_state(state_vec)
         state[cust][:, prod_idx] = updated_state
 
         q = w*row['QUANTITY']
@@ -224,12 +226,16 @@ def estimate_spatial_q(df, cust):
         mtx[start_idx:end_idx, 0] = q.round()
         mtx[start_idx:end_idx, 1] = range(n_regions[cust])
         mtx[start_idx:end_idx, 2:] = row.values
+        action_mtx[start_idx:end_idx, :] = action
 
         cntr += 1
         start_idx += n_regions[cust]
         end_idx += n_regions[cust]
 
-    return pd.DataFrame(mtx, columns=new_cols)
+    df = pd.DataFrame(mtx, columns=new_cols)
+    action_df = pd.DataFrame(action_mtx, columns=["action_region_{}".format(x) for x in range(n_regions[cust])])
+
+    return df, action_df
 
 def update_timestamps(df):
     date_map = {}
@@ -294,27 +300,37 @@ def update_features(df):
 store1 = get_prev_sales(store1, means=mean_sales, means_by_day=mean_sales_day)
 store2 = get_prev_sales(store2, means=mean_sales, means_by_day=mean_sales_day)
 
-store1_clean = update_features(estimate_spatial_q(store1, STORE_SET[0]))
-store2_clean = update_features(estimate_spatial_q(store2, STORE_SET[1]))
+#store1_clean = update_features(estimate_spatial_q(store1, STORE_SET[0]))
+#store2_clean = update_features(estimate_spatial_q(store2, STORE_SET[1]))
+
+store1, action1 = estimate_spatial_q(store1, STORE_SET[0])
+store2, action2 = estimate_spatial_q(store2, STORE_SET[1])
+
+store1_clean = update_features(store1)
+store2_clean = update_features(store2)
 
 store1_clean = update_timestamps(store1_clean)
 store2_clean = update_timestamps(store2_clean)
 
 # Split train/test
 
-def split(df, train_pct=.8):
+def split(df, A, train_pct=.8):
     dates = df['time'].unique()
     train_size = int(train_pct * len(dates))
+
     train_idx = dates[:train_size]
     test_idx = dates[train_size:]
 
     train = df[df["time"].isin(train_idx)]
     test = df[df["time"].isin(test_idx)]
 
-    return train, test
+    A_train = A.loc[train.index]
+    A_test = A.loc[test.index]
 
-store1_train, store1_test = split(store1_clean, train_pct=TRAIN_DATA_PCT)
-store2_train, store2_test = split(store2_clean, train_pct=TRAIN_DATA_PCT)
+    return train, test, A_train, A_test
+
+store1_train, store1_test, a1_train, a1_test = split(store1_clean, A=action1, train_pct=TRAIN_DATA_PCT)
+store2_train, store2_test, a2_train, a2_test  = split(store2_clean, A=action2, train_pct=TRAIN_DATA_PCT)
 
 store1_train = update_timestamps(store1_train)
 store1_test = update_timestamps(store1_test)
@@ -332,3 +348,6 @@ store2_test.to_csv("store-2-test.csv", index=False)
 
 store1_clean.to_csv("store-1-all.csv", index=False)
 store2_clean.to_csv("store-2-all.csv", index=False)
+
+action1.to_csv("store-1-action-all.csv",index=False)
+action2.to_csv("store-2-action-all.csv",index=False)
