@@ -14,7 +14,7 @@ class State(object):
             -  A matrix (n_regions x n_products)
     """
 
-    def __init__(self, day, day_vec, board_config, prev_sales, prices):
+    def __init__(self, day, day_vec, board_config, prev_sales, prices, sales_bound):
         self.day = day
         self.day_vec = day_vec
         self.board_config = board_config
@@ -25,6 +25,7 @@ class State(object):
         self._product_mask = State.get_mask(self._products, cfg.vals['n_products'])
         self.curr_sales = None
         self.prices = prices
+        self.sales_bound = sales_bound
 
     def __str__(self):
         s = "day:\n{}\nboard:\n{}\n prev_sales:\n{}".format(self.day_vec, self.board_config, self.prev_sales)
@@ -62,6 +63,20 @@ class State(object):
         self.prev_sales = sales_mtx
 
     @staticmethod
+    def clip_sales(sales, bound):
+        updated_sales = np.zeros_like(sales)
+        for i, val in enumerate(sales):
+            if val > bound:
+                print("clipping sales: {} -->{}".format(val, bound))
+                updated_sales[i] = bound
+            else:
+                updated_sales[i] = val
+
+
+        return updated_sales
+        #return np.min(val, bound)
+
+    @staticmethod
     def get_day_vec(day):
         day_vec = np.zeros(7)
         day_vec[day] = 1.0
@@ -95,13 +110,17 @@ class State(object):
             prev_sales = config['prev_sales']
 
         mean_prices = State.get_avg_prices(train_data)
+        # compute upper bound for valid, single-day product/sales value
+        upper_prices = np.quantile(train_data['sales'], q=.99)
+        upper_prices = .25*upper_prices + upper_prices
 
         day_vec = State.get_day_vec(config['env_init_day'])
         state = State(day=config['env_init_day'],
                       day_vec=day_vec,
                       board_config=config['env_init_loc'],
                       prev_sales=prev_sales,
-                      prices=mean_prices)
+                      prices=mean_prices,
+                      sales_bound=upper_prices)
 
         print("------Intial State------")
         print(state)

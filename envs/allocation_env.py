@@ -219,6 +219,8 @@ class AllocationEnv(gym.Env):
         state_features = Features.featurize_state(self.state)
         sales_posterior = self._predict(state_features, n_samples=self.posterior_samples)
         sales_hat = sales_posterior.mean(axis=0)
+        # clip estimated sales
+        sales_hat = State.clip_sales(sales_hat, self.state.sales_bound)
         self.state.advance(sales_hat)
 
         return self._get_state()
