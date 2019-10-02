@@ -99,9 +99,10 @@ class Features(object):
         # number of unique item/product combinations in board config. Can use length of products from state
         n_rows = len(state._products)
 
-        time_stamps = np.array([state.day]*n_rows)
+        day_vec = np.array([state.day]*n_rows)
+        time_stamps = np.arange(n_rows)
         try:
-            day_features = Features._get_one_hot_features_single_ts(time_stamps, cfg.vals['n_temporal_features'])
+            day_features = Features._get_one_hot_features_single_ts(day_vec, cfg.vals['n_temporal_features'])
             product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
             region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
         except:
