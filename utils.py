@@ -42,3 +42,6 @@ def check_draws_inf(draws):
         if is_inf_sums[col] == draws.shape[0]:
             raise Exception("All draws are inf for sample: {}".format(col))
     return draws
+
+def serialize_floats(arr):
+    return ["{}".format(x) for x in arr]

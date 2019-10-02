@@ -31,3 +31,11 @@ plt.plot(x, model.cumul_reward)
 plt.xlabel("Timestep (t)")
 plt.ylabel("Cumulative Reward")
 plt.savefig("figs/{}-learning-curve.png".format(cfg.vals['prj_name']))
+
+obs = env.reset()
+for i in range(10):
+    action, _states = model.predict(obs)
+    # TODO: add check for feasible action space
+    action = 2
+    action = AllocationEnv.check_action(obs['board_config'], action)
+    obs, rewards, dones, info = env.step([action])

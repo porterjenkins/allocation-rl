@@ -12,3 +12,5 @@ data/*.xlsx
 data/*.json
 *.ipynb
 data/.ipynb_checkpoints
+
+experiments/output
