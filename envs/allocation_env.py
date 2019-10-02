@@ -12,7 +12,7 @@ import config.config as cfg
 from envs.features import Features
 from envs.state import State
 import gym
-
+import copy
 from gym import error, spaces, utils
 from gym.utils import seeding
 import datetime
@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
     metadata = {'render.modes': ['allocation'],
-                'max_cnt_reward_not_reduce_round': 100}
+                'max_cnt_reward_not_reduce_round': 15}
 
     def __init__(self, config, prior, load_model=True):
         self.n_regions = config['n_regions']
@@ -178,7 +178,7 @@ class AllocationEnv(gym.Env):
 
 
     def reset(self):
-        self.state = self.init_state
+        self.state = copy.copy(self.init_state)
         self.cnt_reward_not_reduce_round = 0
         self.viewer = None
         print("*************************Resetting Environment")
