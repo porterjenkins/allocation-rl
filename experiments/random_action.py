@@ -8,7 +8,7 @@ import config.config as cfg
 import matplotlib.pyplot as plt
 
 
-TIME_STEPS = 250
+TIME_STEPS = 30
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 cumul_reward = [0.0]

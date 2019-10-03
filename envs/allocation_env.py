@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
     metadata = {'render.modes': ['allocation'],
-                'max_cnt_reward_not_reduce_round': 15}
+                'max_cnt_reward_not_reduce_round': 30}
 
     def __init__(self, config, prior, load_model=True):
         self.n_regions = config['n_regions']
