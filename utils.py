@@ -32,6 +32,12 @@ def rmse(y_hat, y_true):
     err = y_true - y_hat
     return np.mean(np.power(err, 2))
 
+def mape(y_hat, y_true):
+    err = np.abs((y_true - y_hat) / y_true)
+    return np.mean(err)
+
+
+
 def check_draws_inf(draws):
     is_inf = np.isinf(draws)
     is_inf_sums = is_inf.sum(axis=0)

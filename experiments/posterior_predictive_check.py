@@ -8,7 +8,7 @@ from envs.allocation_env import AllocationEnv
 import numpy as np
 import matplotlib.pyplot
 import pandas as pd
-from utils import mae, rmse, check_draws_inf
+from utils import mae, rmse, check_draws_inf, mape
 from experiments.plot import plot_total_ppc
 
 train_data = pd.read_csv(cfg.vals['train_data'])
@@ -34,9 +34,12 @@ y_hat_draws = check_draws_inf(y_hat_draws)
 y_hat = y_hat_draws.mean(axis=0)
 train_mae = mae(y_hat, y_train)
 train_rmse = rmse(y_hat, y_train)
+train_mape = mape(y_hat, y_train)
+
 
 print("MAE - (train): {}".format(train_mae))
 print("RMSE - (train): {}".format(train_rmse))
+print("MAPE: - (train): {}".format(train_mape))
 
 # Test Data
 y_hat_draws = env._predict(features=test_data_features, n_samples=100)
@@ -48,8 +51,11 @@ test_data['y_hat_lower'] = np.percentile(y_hat_draws, q=5.0, axis=1)
 
 test_mae = mae(test_data.y_hat, y_test)
 test_rmse = rmse(test_data.y_hat, y_test)
+test_mape = mape(test_data.y_hat, y_test)
 
 print("MAE - (test): {}".format(test_mae))
 print("RMSE - (test): {}".format(test_rmse))
+print("MAPE: - (test): {}".format(test_mape))
+
 
 plot_total_ppc(test_data, pd.DataFrame(y_hat_draws), fname="figs/total-ppc-{}".format(cfg.vals['prj_name']))
