@@ -37,10 +37,6 @@ train_rmse = rmse(y_hat, y_train)
 train_mape = mape(y_hat, y_train)
 
 
-print("MAE - (train): {}".format(train_mae))
-print("RMSE - (train): {}".format(train_rmse))
-print("MAPE: - (train): {}".format(train_mape))
-
 # Test Data
 y_hat_draws = env._predict(features=test_data_features, n_samples=100)
 y_hat_draws = check_draws_inf(y_hat_draws)
@@ -53,9 +49,31 @@ test_mae = mae(test_data.y_hat, y_test)
 test_rmse = rmse(test_data.y_hat, y_test)
 test_mape = mape(test_data.y_hat, y_test)
 
-print("MAE - (test): {}".format(test_mae))
-print("RMSE - (test): {}".format(test_rmse))
-print("MAPE: - (test): {}".format(test_mape))
+print("MAE - (test):  {:.2f}".format(test_mae))
+print("RMSE - (test):  {:.2f}".format(test_rmse))
+print("MAPE: - (test):  {:.2f}".format(test_mape))
+
+
+
+# product-level errors:
+test_data["err"] = test_data.sales - test_data.y_hat
+prod_errors = test_data[["product", "err"]].groupby("product").agg(lambda x: np.mean(np.abs(x)))
+print(prod_errors)
+
+
+# product-level errors:
+"""prod_errors = test_data[["product", "sales", "y_hat"]].groupby("product").sum()
+prod_errors["err"] = prod_errors.sales - prod_errors.y_hat
+
+test_mae = mae(prod_errors.sales, prod_errors.y_hat)
+test_rmse = rmse(prod_errors.sales, prod_errors.y_hat)
+test_mape = mape(prod_errors.sales, prod_errors.y_hat)
+
+print("product-level errors:")
+print("MAE - (test):  {:.2f}".format(test_mae))
+print("RMSE - (test):  {:.2f}".format(test_rmse))
+print("MAPE: - (test):  {:.2f}".format(test_mape))"""
+
 
 
 plot_total_ppc(test_data, pd.DataFrame(y_hat_draws), fname="figs/total-ppc-{}".format(cfg.vals['prj_name']))

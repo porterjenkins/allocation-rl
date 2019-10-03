@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 N_PRODUCTS = 15
 FLIP_PROB = 0.05
-TRAIN_DATA_PCT = .90
+TRAIN_DATA_PCT = .85
 
 def make_bin_mtx(arr, dims):
     mtx = np.zeros(dims)
@@ -151,7 +151,7 @@ global prod_to_idx
 prod_to_idx = dict(zip(PROD_SET, range(N_PRODUCTS)))
 
 # Regions per store
-n_regions = dict(zip(STORE_SET, [18, 5]))
+n_regions = dict(zip(STORE_SET, [18, 12]))
 
 # Adjacency Matrices
 

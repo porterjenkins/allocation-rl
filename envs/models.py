@@ -54,7 +54,7 @@ class LinearModel(Model):
 
             bias_q = pm.Normal("bias_q", mu=0.0, sigma=25.0)
             # TODO: should force mean to be positive ? exp(mu)
-            lambda_q = pm.math.exp(bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T)  + w_s * self.X_lagged)
+            lambda_q = bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T)  + w_s * self.X_lagged
 
 
             sigma_q_ij = pm.InverseGamma("sigma_q_ij",alpha=self.prior.loc_sigma_q_ij, beta=self.prior.scale_sigma_q_ij)

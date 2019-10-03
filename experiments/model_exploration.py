@@ -6,8 +6,9 @@ from envs.allocation_env import AllocationEnv
 import config.config as cfg
 import pymc3 as pm
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-PLOT = False
+PLOT = True
 n_p = cfg.vals["n_products"]
 n_r = cfg.vals["n_regions"]
 
@@ -18,8 +19,7 @@ env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 
 mod_summary = pm.summary(env.trace)
 
-mod_summary.to_csv("output/output-{}.csv".format(cfg.vals['prj_name']))
-
+mod_summary.to_csv("output/model-summary-{}.csv".format(cfg.vals['prj_name']))
 w_r_names = []
 
 for i in range(n_p):
@@ -27,9 +27,18 @@ for i in range(n_p):
         name = "w_r_ij__{}_{}".format(i, j)
         w_r_names.append(name)
 
+if cfg.vals['model_type'] == 'hierarchical':
 
-w_r_means = mod_summary.loc[w_r_names]['mean'].values.reshape((n_p, n_r))
-print(w_r_means)
+    w_r_means = mod_summary.loc[w_r_names]['mean'].values.reshape((n_p, n_r))
+
+
+    sns.heatmap(w_r_means.transpose(), linewidth=0.5, cmap="YlGnBu")
+    plt.xlabel('Products')
+    plt.ylabel("Regions")
+    plt.savefig("figs/weight-heatmap-{}.pdf".format(cfg.vals['prj_name']))
+    plt.clf()
+    plt.close()
+
 
 if PLOT:
 
