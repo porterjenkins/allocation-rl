@@ -57,5 +57,5 @@ for k, v in results.items():
     results[k] = serialize_floats(v)
 
 
-with open("output/rl-learning-curve.json", 'w') as f:
+with open("output/rl-learning-curve-{}.json".format(cfg.vals['prj_name']), 'w') as f:
     json.dump(results, f)

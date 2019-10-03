@@ -14,8 +14,8 @@ from utils import serialize_floats
 import json
 
 TEST_T = 30
-TIME_STEPS = 30*100
-LEARNING_START = TIME_STEPS*.1
+TIME_STEPS = 30*500
+LEARNING_START = int(TIME_STEPS*.3)
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
