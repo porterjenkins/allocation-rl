@@ -7,6 +7,8 @@ import config.config as cfg
 import pymc3 as pm
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+
 
 PLOT = True
 n_p = cfg.vals["n_products"]
@@ -28,11 +30,18 @@ for i in range(n_p):
         w_r_names.append(name)
 
 if cfg.vals['model_type'] == 'hierarchical':
-
+    #scaler = StandardScaler()
     w_r_means = mod_summary.loc[w_r_names]['mean'].values.reshape((n_p, n_r))
 
+    #w_r_scaled = scaler.fit_transform(w_r_means)
+    mu = w_r_means.mean()
+    sig = w_r_means.std()
 
-    sns.heatmap(w_r_means.transpose(), linewidth=0.5, cmap="YlGnBu")
+    w_r_scaled = (w_r_means - mu) / sig
+
+
+
+    sns.heatmap(w_r_scaled.transpose(), linewidth=0.5, cmap="YlGnBu")
     plt.xlabel('Products')
     plt.ylabel("Regions")
     plt.savefig("figs/weight-heatmap-{}.pdf".format(cfg.vals['prj_name']))
