@@ -23,10 +23,7 @@ LEARNING_START = int(TIME_STEPS*.3)
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 n_actions = env.n_actions
-action_space = np.arrage(n_actions)
-
-# Initialize necessary variables for loop
-
+action_space = np.arange(n_actions)
 
 def map_optimal_rewards():
     state = env.reset()
@@ -36,9 +33,9 @@ def map_optimal_rewards():
     for day in range(TEST_T):
         action_to_reward = {}  # create a HashMap from action to reward
 
-        for action in range(action_space):
-            proposed_env = copy.deepcopy(state)
-            proposed_state, reward = proposed_env.step(action)
+        for action in action_space:
+            proposed_env = copy.deepcopy(env)
+            proposed_state, reward, b, i = proposed_env.step(action)
             action_to_reward[action] = reward
 
         optimal_actions.insert(day, max(action_to_reward, key=action_to_reward.get)) # Save best action on ith day
@@ -47,6 +44,8 @@ def map_optimal_rewards():
         state = env.step(optimal_actions[day])  # update the state after each day based on the optimal action taken
 
     return state, optimal_actions, reward_values
+
+print(map_optimal_rewards())
 
 
 #
