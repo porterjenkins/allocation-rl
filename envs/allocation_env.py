@@ -41,6 +41,7 @@ class AllocationEnv(gym.Env):
         self.viewer = None
         self.state = None
         self.n_actions = 1 + self.n_regions*self.n_products*2
+        self.cost = config["cost"]
 
         self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
@@ -207,9 +208,15 @@ class AllocationEnv(gym.Env):
     def _get_state(self):
         return Features.featurize_state_saperate(self.state)
 
+    def _get_cost(self):
+        is_region_allocated = np.where(self.state.board_config == 1)[0]
+        n_region_allocated = len(np.unique(is_region_allocated))
+        total_cost = n_region_allocated*self.cost
+        return total_cost
+
     def _get_reward(self, is_valid_action):
         if is_valid_action:
-            r = self.state.prev_sales.sum()
+            r = self.state.prev_sales.sum() - self._get_cost()
         else:
             r = -1.0
         return r
