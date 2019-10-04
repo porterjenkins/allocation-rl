@@ -77,7 +77,7 @@ print("MAPE: - (test): {:.2f}".format(test_mape))
 
 
 ## MLP
-mlp = MLPRegressor(hidden_layer_sizes=(256, 128))
+mlp = MLPRegressor(hidden_layer_sizes=(256, 128), solver='sgd')
 mlp.fit(X_train, y_train)
 y_hat = mlp.predict(X_test)
 test_mae = mae(y_hat, y_test)
@@ -88,3 +88,8 @@ print("--MLP--")
 print("MAE - (test): {:.2f}".format(test_mae))
 print("RMSE - (test): {:.2f}".format(test_rmse))
 print("MAPE: - (test): {:.2f}".format(test_mape))
+
+# product-level errors:
+test_data["err"] = test_data.sales - test_data.y_hat
+prod_errors = test_data[["product", "err"]].groupby("product").agg(lambda x: np.mean(np.abs(x)))
+print(prod_errors)
