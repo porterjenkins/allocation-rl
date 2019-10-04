@@ -122,8 +122,6 @@ class State(object):
                       prices=mean_prices,
                       sales_bound=upper_prices)
 
-        print("------Intial State------")
-        print(state)
         return state
 
 

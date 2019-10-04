@@ -46,8 +46,10 @@ class Prior(object):
             L_norm = get_norm_laplacian(self.adj_mtx, self.n_regions)
             # TODO: Check if we should multiply by scale factor
             self.scale_w_r = L_norm*prior['scale_w_r']
+            print("---Using Graph Laplacian Precision Matrix--")
         else:
             self.scale_w_r = np.eye(self.n_regions)*prior['scale_w_r']
+            print("---Using Diagonal Covariance--")
         # prior for product wieghts
         self.loc_w_p = self.__get_loc_val(prior['loc_w_p'], self.n_products)
         self.scale_w_p = self.__get_scale_val(prior['loc_w_p'], self.n_products)
