@@ -33,9 +33,12 @@ class Features(object):
 
         day_features_grouped = df[['time', 'day_of_week']].groupby('time').max()
 
-        region_features = pd.get_dummies(df.region, prefix='region')
-        product_features = pd.get_dummies(df['product'], prefix='product')
-        #day_features = pd.get_dummies(day_features_grouped['day_of_week'], prefix='day')
+        region_encoder = OneHotEncoder(categories=[range(cfg.vals["n_regions"])])
+        region_features = region_encoder.fit_transform(df['region'].values.reshape(-1, 1)).toarray()
+
+        prod_encoder = OneHotEncoder(categories=[range(cfg.vals["n_products"])])
+        product_features = prod_encoder.fit_transform(df['product'].values.reshape(-1, 1)).toarray()
+
         encoder = OneHotEncoder(categories=[range(7)])
         day_features = encoder.fit_transform(day_features_grouped['day_of_week'].values.reshape(-1, 1)).toarray()
 
@@ -44,8 +47,8 @@ class Features(object):
         else:
             y = np.ones(df.shape[0]).astype(theano.config.floatX)
 
-        features = Features(region=region_features.values.astype(theano.config.floatX),
-                            product=product_features.values.astype(theano.config.floatX),
+        features = Features(region=region_features.astype(theano.config.floatX),
+                            product=product_features.astype(theano.config.floatX),
                             temporal=day_features.astype(theano.config.floatX),
                             lagged=df['prev_sales'].values.astype(theano.config.floatX),
                             prices=df['price'].values,

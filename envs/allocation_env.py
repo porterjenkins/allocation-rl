@@ -137,9 +137,9 @@ class AllocationEnv(gym.Env):
         with self.env_model:
             #inference = pm.ADVI()
             #approx = pm.fit(n=n_iter, method=inference, total_grad_norm_constraint=10)
-            #self.trace = approx.sample(draws=100)
+            #self.trace = approx.sample(draws=n_samples)
             self.trace = pm.sample(n_samples, tune=n_iter, init='advi+adapt_diag')
-            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=1000)
+            posterior_pred = pm.sample_posterior_predictive(self.trace, samples=200)
         #plt.plot(inference.hist)
         #plt.ylabel('ELBO')
         #plt.xlabel('iteration')

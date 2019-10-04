@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from utils import mae, rmse, mape
-
+import numpy as np
 
 
 
@@ -35,13 +35,31 @@ y_test = test_data['sales'].values
 ols = LinearRegression()
 ols.fit(X_train, y_train)
 y_hat = ols.predict(X_test)
+test_data["y_hat"] = y_hat
 test_mae = mae(y_hat, y_test)
 test_rmse = rmse(y_hat, y_test)
 test_mape = mape(y_hat, y_test)
 
-print("MAE - (test): {}".format(test_mae))
-print("RMSE - (test): {}".format(test_rmse))
-print("MAPE: - (test): {}".format(test_mape))
+print("--OLS--")
+print("MAE - (test): {:.2f}".format(test_mae))
+print("RMSE - (test): {:.2f}".format(test_rmse))
+print("MAPE: - (test): {:.2f}".format(test_mape))
+
+
+# product-level errors:
+test_data["err"] = test_data.sales - test_data.y_hat
+prod_errors = test_data[["product", "err"]].groupby("product").agg(lambda x: np.mean(np.abs(x)))
+print(prod_errors)
+
+"""test_mae = mae(prod_errors.sales, prod_errors.y_hat)
+test_rmse = rmse(prod_errors.sales, prod_errors.y_hat)
+test_mape = mape(prod_errors.sales, prod_errors.y_hat)
+
+print("product-level errors:")
+print("MAE - (test):  {:.2f}".format(test_mae))
+print("RMSE - (test):  {:.2f}".format(test_rmse))
+print("MAPE: - (test):  {:.2f}".format(test_mape))"""
+
 
 
 ## Random Forest
@@ -52,19 +70,21 @@ test_mae = mae(y_hat, y_test)
 test_rmse = rmse(y_hat, y_test)
 test_mape = mape(y_hat, y_test)
 
-print("MAE - (test): {}".format(test_mae))
-print("RMSE - (test): {}".format(test_rmse))
-print("MAPE: - (test): {}".format(test_mape))
+print("--RF--")
+print("MAE - (test): {:.2f}".format(test_mae))
+print("RMSE - (test): {:.2f}".format(test_rmse))
+print("MAPE: - (test): {:.2f}".format(test_mape))
 
 
 ## MLP
-mlp = MLPRegressor(hidden_layer_sizes=(500, 100))
+mlp = MLPRegressor(hidden_layer_sizes=(256, 128))
 mlp.fit(X_train, y_train)
 y_hat = mlp.predict(X_test)
 test_mae = mae(y_hat, y_test)
 test_rmse = rmse(y_hat, y_test)
 test_mape = mape(y_hat, y_test)
 
-print("MAE - (test): {}".format(test_mae))
-print("RMSE - (test): {}".format(test_rmse))
-print("MAPE: - (test): {}".format(test_mape))
+print("--MLP--")
+print("MAE - (test): {:.2f}".format(test_mae))
+print("RMSE - (test): {:.2f}".format(test_rmse))
+print("MAPE: - (test): {:.2f}".format(test_mape))
