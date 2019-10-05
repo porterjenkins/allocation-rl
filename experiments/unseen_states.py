@@ -38,8 +38,7 @@ plt.axvline(agg_upper,linestyle='dotted',c='red')
 sns.distplot(agg_sales, hist=True, kde=True, color = 'blue',
              hist_kws={'edgecolor':'black'}, norm_hist=True)
 
-plt.ylabel("Revenue ($)")
-plt.xlim(x_lim)
+plt.xlabel("Revenue ($)")
 plt.savefig("figs/unseen_state-dist.pdf")
 plt.clf()
 plt.close()

@@ -20,7 +20,7 @@ env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 
 ts_train = env.time_stamps.container.data
 ts_unique = np.unique(ts_train)
-np.random.seed(9812)
+np.random.seed(1990)
 ts = np.random.choice(ts_unique, )
 
 idx = np.where(ts_train == ts)[0]
@@ -42,8 +42,7 @@ for i in regions:
 
 env.reset()
 a = observed_board - env.state.board_config
-#obs, rewards, dones, info = env.step(a)
-env.state.board_config += a
+env._take_action(a)
 
 # heat map for seen state
 
@@ -82,7 +81,7 @@ plt.axvline(agg_upper,linestyle='dotted',c='red')
 sns.distplot(agg_sales, hist=True, kde=True, color = 'blue',
              hist_kws={'edgecolor':'black'}, norm_hist=True)
 
-plt.ylabel("Revenue ($)")
+plt.xlabel("Revenue ($)")
 plt.savefig("figs/seen_state-dist.pdf")
 plt.clf()
 plt.close()
