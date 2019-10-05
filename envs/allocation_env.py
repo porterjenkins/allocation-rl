@@ -153,14 +153,16 @@ class AllocationEnv(gym.Env):
         return posterior_pred
 
 
-    def _predict(self, features, n_samples):
+    def _predict(self, features=None, n_samples=500):
         self.__check_model()
 
         self.__update_features(features)
         with self.env_model:
             posterior_pred = pm.sample_posterior_predictive(self.trace, samples=n_samples, progressbar=False)
         sales = self.__get_sales(posterior_pred['quantity_ij'], prices=features.prices)
-        return sales
+        # clip estimated sales
+        sales_hat = State.clip_val(sales, self.state.sales_bound)
+        return sales_hat
 
 
     def __update_features(self, features):
@@ -226,8 +228,6 @@ class AllocationEnv(gym.Env):
         state_features = Features.featurize_state(self.state)
         sales_posterior = self._predict(state_features, n_samples=self.posterior_samples)
         sales_hat = sales_posterior.mean(axis=0)
-        # clip estimated sales
-        sales_hat = State.clip_sales(sales_hat, self.state.sales_bound)
         self.state.advance(sales_hat)
 
         return self._get_state()

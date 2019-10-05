@@ -63,18 +63,9 @@ class State(object):
         self.prev_sales = sales_mtx
 
     @staticmethod
-    def clip_sales(sales, bound):
-        updated_sales = np.zeros_like(sales)
-        for i, val in enumerate(sales):
-            if val > bound:
-                print("clipping sales: {} -->{}".format(val, bound))
-                updated_sales[i] = bound
-            else:
-                updated_sales[i] = val
+    def clip_val(val, bound):
+        return np.minimum(val, bound)
 
-
-        return updated_sales
-        #return np.min(val, bound)
 
     @staticmethod
     def get_day_vec(day):
@@ -97,15 +88,20 @@ class State(object):
         return mean_prices['price'].to_dict()
 
     @classmethod
-    def __init_prev_sales_means(cls, df):
-        means = df[['product', 'region', 'sales']].groupby(['region', 'product']).mean()
-        means_mtx = means.values.reshape(cfg.vals['n_regions'], cfg.vals['n_products'])
+    def __init_prev_sales_means(cls, df, r, p):
+        means = df[['product', 'sales']].groupby(['product']).mean()
+        means_mtx = np.zeros((r, p))
+        for i in range(p):
+            prod_means = means.loc[i]
+            means_mtx[:, i] = np.log(prod_means)
         return means_mtx
     @classmethod
     def init_state(cls, config):
         if "prev_sales" not in config:
             train_data = pd.read_csv(config['train_data'])
-            prev_sales = State.__init_prev_sales_means(train_data)
+            train_data = train_data[train_data['quantity'] >= 0]
+            prev_sales = State.__init_prev_sales_means(train_data, cfg.vals['n_regions'],
+                                                       cfg.vals['n_products'])
         else:
             prev_sales = config['prev_sales']
 
