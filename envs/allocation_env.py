@@ -42,6 +42,7 @@ class AllocationEnv(gym.Env):
         self.state = None
         self.n_actions = 1 + self.n_regions*self.n_products*2
         self.cost = config["cost"]
+        self.log_linear = config["log_linear"]
 
         self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
@@ -107,7 +108,7 @@ class AllocationEnv(gym.Env):
                                      X_lagged=self.X_lagged,
                                      X_temporal=self.X_temporal,
                                      y=self.y,
-                                     time_stamps=self.time_stamps)
+                                     time_stamps=self.time_stamps, log_linear=self.log_linear)
         else:
 
             model = HierarchicalModel(prior=self.prior,
@@ -120,7 +121,7 @@ class AllocationEnv(gym.Env):
                                      X_temporal=self.X_temporal,
                                      y=self.y,
                                      time_stamps=self.time_stamps,
-                                     product_idx=self.product_idx)
+                                     product_idx=self.product_idx, log_linear=self.log_linear)
 
         return model.build()
 
@@ -326,7 +327,7 @@ class AllocationEnv(gym.Env):
         if action in feasible_actions:
             return action
         else:
-            return -1
+            return 0
 
 
 if __name__ == "__main__":

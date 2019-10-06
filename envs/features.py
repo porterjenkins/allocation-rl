@@ -66,9 +66,17 @@ class Features(object):
 
     @classmethod
     def _get_lagged_features(cls, prev_sales, items, log=True):
+        # Add small positive value to ensure that 0.0 values don't go to -inf
+        eps = 1e-4
         prev_sales = np.array([prev_sales[i] for i in items])
+        prev_sales += eps
+
         if log:
             prev_sales = np.log(prev_sales)
+            summed = prev_sales.sum()
+            if np.isinf(summed) or np.isnan(summed):
+                raise ValueError("inf or nan in previous sales")
+
         return prev_sales
 
     @classmethod

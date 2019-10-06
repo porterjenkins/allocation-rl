@@ -4,7 +4,6 @@ import os
 import ast
 import sys
 
-EVAL_KEYS = ['env_init_loc']
 
 def make_bin_mtx(arr, dims):
     mtx = np.zeros(dims)
@@ -15,8 +14,8 @@ def make_bin_mtx(arr, dims):
 with open('../config/config.json') as f:
     vals = json.load(f)
 
-for k in EVAL_KEYS:
-    vals[k] = ast.literal_eval(vals[k])
+
+
 
 # flag to use precision matrix from graph laplacian
 if 'precision_mtx' not in vals:
@@ -27,6 +26,10 @@ if vals['precision_mtx']:
     vals['prj_name'] = vals['model_type'] + "-" + vals['train_data'].split("/")[1].split(".")[0]
 else:
     vals['prj_name'] =  vals['model_type'] + "-" + vals['train_data'].split("/")[1].split(".")[0] + "-no-precision"
+
+if vals["log_linear"]:
+    vals["prj_name"] += "-loglinear"
+
 vals['prj_root'] = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 vals['model_path'] = "{}/envs/{}.p".format(vals['prj_root'],vals['prj_name'])
 vals['train_data'] = vals['prj_root'] + "/" + vals['train_data']
@@ -46,7 +49,15 @@ vals['adj_mtx'] = make_bin_mtx(adj_mtx_vals['non_zero_entries'], dims=(vals['n_r
 #vals['adj_mtx'] = vals['adj_mtx'] + np.eye(vals['n_regions'])
 
 # setup state matrices
-vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
+if 'env_init_loc' in vals:
+    vals['env_init_loc'] = ast.literal_eval(vals['env_init_loc'])
+    vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
+else:
+    np.random.seed(1990)
+    init_r = np.random.randint(0, vals["n_regions"], vals["n_regions"])
+    init_p = np.random.randint(0, vals["n_products"], vals["n_products"])
+    init_loc = list(zip(init_r, init_p))
+    vals['env_init_loc'] = make_bin_mtx(init_loc, dims=(vals['n_regions'], vals['n_products']))
 
 
 assert vals['model_type'] in ['hierarchical', 'linear']

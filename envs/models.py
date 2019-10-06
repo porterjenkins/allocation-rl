@@ -1,10 +1,10 @@
 import pymc3 as pm
-
+import theano.tensor as tt
 
 class Model(object):
 
     def __init__(self, prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
-                 time_stamps):
+                 time_stamps, log_linear):
         self.prior = prior
         self.n_regions = n_regions
         self.n_products = n_products
@@ -15,6 +15,7 @@ class Model(object):
         self.X_lagged = X_lagged
         self.y = y
         self.time_stamps = time_stamps
+        self.log_linear = log_linear
 
     def build(self):
         pass
@@ -22,9 +23,9 @@ class Model(object):
 
 class LinearModel(Model):
     def __init__(self, prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
-                 time_stamps):
+                 time_stamps, log_linear):
         super().__init__(prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
-                 time_stamps)
+                 time_stamps, log_linear)
 
     def build(self):
         with pm.Model() as env_model:
@@ -69,9 +70,12 @@ class LinearModel(Model):
             bias_q_scale = pm.HalfCauchy('bias_q_scale', 5.0)
 
             bias_q = pm.Normal("bias_q", mu=bias_q_loc, sigma=bias_q_scale)
-            # TODO: should force mean to be positive ? exp(mu)
-            lambda_q = bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T)  + w_s * self.X_lagged
 
+            if self.log_linear:
+                lambda_q = pm.math.exp(bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(
+                    self.X_product, w_p.T) + w_s * self.X_lagged)
+            else:
+                lambda_q = bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T)  + w_s * self.X_lagged
 
             sigma_q_ij = pm.InverseGamma("sigma_q_ij",alpha=self.prior.loc_sigma_q_ij, beta=self.prior.scale_sigma_q_ij)
             q_ij = pm.TruncatedNormal('quantity_ij', mu=lambda_q, sigma=sigma_q_ij, lower=0.0, observed=self.y)
@@ -82,10 +86,10 @@ class LinearModel(Model):
 class HierarchicalModel(Model):
 
     def __init__(self, prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
-                 time_stamps, product_idx):
+                 time_stamps, product_idx, log_linear):
         self.product_idx = product_idx
         super().__init__(prior, n_regions, n_products, n_temporal_features, X_region, X_product, X_temporal, X_lagged, y,
-                 time_stamps)
+                 time_stamps, log_linear)
 
     def build(self):
         with pm.Model() as env_model:
@@ -132,8 +136,13 @@ class HierarchicalModel(Model):
             bias_q_scale = pm.HalfCauchy('bias_q_scale', 5.0)
 
             bias_q = pm.Normal("bias_q", mu=bias_q_loc, sigma=bias_q_scale)
-            lambda_q = bias_q + pm.math.sum(self.X_region * w_r_ij[self.product_idx], axis=1) + pm.math.dot(self.X_product, w_p.T) + \
-                       lambda_c_t[self.time_stamps] + w_s * self.X_lagged
+
+            if self.log_linear:
+                lambda_q = pm.math.exp(bias_q + pm.math.sum(self.X_region * w_r_ij[self.product_idx], axis=1) + pm.math.dot(
+                    self.X_product, w_p.T) + lambda_c_t[self.time_stamps] + w_s * self.X_lagged)
+            else:
+                lambda_q = bias_q + pm.math.sum(self.X_region * w_r_ij[self.product_idx], axis=1) + pm.math.dot(self.X_product, w_p.T) + \
+                           lambda_c_t[self.time_stamps] + w_s * self.X_lagged
 
             sigma_q_ij = pm.InverseGamma("sigma_q_ij", alpha=self.prior.loc_sigma_q_ij,
                                          beta=self.prior.scale_sigma_q_ij)
