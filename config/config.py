@@ -26,6 +26,10 @@ if vals['precision_mtx']:
     vals['prj_name'] = vals['model_type'] + "-" + vals['train_data'].split("/")[1].split(".")[0]
 else:
     vals['prj_name'] =  vals['model_type'] + "-" + vals['train_data'].split("/")[1].split(".")[0] + "-no-precision"
+
+if vals["log_linear"]:
+    vals["prj_name"] += "-loglinear"
+
 vals['prj_root'] = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 vals['model_path'] = "{}/envs/{}.p".format(vals['prj_root'],vals['prj_name'])
 vals['train_data'] = vals['prj_root'] + "/" + vals['train_data']
