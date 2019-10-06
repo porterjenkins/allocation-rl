@@ -53,6 +53,7 @@ if 'env_init_loc' in vals:
     vals['env_init_loc'] = ast.literal_eval(vals['env_init_loc'])
     vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
 else:
+    np.random.seed(1990)
     init_r = np.random.randint(0, vals["n_regions"], vals["n_regions"])
     init_p = np.random.randint(0, vals["n_products"], vals["n_products"])
     init_loc = list(zip(init_r, init_p))
