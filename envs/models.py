@@ -1,5 +1,5 @@
 import pymc3 as pm
-
+import theano.tensor as tt
 
 class Model(object):
 
@@ -70,13 +70,12 @@ class LinearModel(Model):
             bias_q_scale = pm.HalfCauchy('bias_q_scale', 5.0)
 
             bias_q = pm.Normal("bias_q", mu=bias_q_loc, sigma=bias_q_scale)
-            # TODO: should force mean to be positive ? exp(mu)
+
             if self.log_linear:
                 lambda_q = pm.math.exp(bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(
                     self.X_product, w_p.T) + w_s * self.X_lagged)
             else:
                 lambda_q = bias_q + lambda_c_t[self.time_stamps] + pm.math.dot(self.X_region, w_r.T) + pm.math.dot(self.X_product, w_p.T)  + w_s * self.X_lagged
-
 
             sigma_q_ij = pm.InverseGamma("sigma_q_ij",alpha=self.prior.loc_sigma_q_ij, beta=self.prior.scale_sigma_q_ij)
             q_ij = pm.TruncatedNormal('quantity_ij', mu=lambda_q, sigma=sigma_q_ij, lower=0.0, observed=self.y)
