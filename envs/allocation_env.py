@@ -327,7 +327,7 @@ class AllocationEnv(gym.Env):
         if action in feasible_actions:
             return action
         else:
-            return -1
+            return 0
 
 
 if __name__ == "__main__":
