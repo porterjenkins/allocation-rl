@@ -93,7 +93,7 @@ class State(object):
         means_mtx = np.zeros((r, p))
         for i in range(p):
             prod_means = means.loc[i]
-            means_mtx[:, i] = np.log(prod_means)
+            means_mtx[:, i] = prod_means
         return means_mtx
     @classmethod
     def init_state(cls, config):
