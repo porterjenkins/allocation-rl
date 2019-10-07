@@ -14,6 +14,7 @@ import matplotlib as mpl
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+env.reset()
 
 s = State.init_state(config=cfg.vals)
 state_features = Features.featurize_state(s)

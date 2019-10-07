@@ -37,6 +37,7 @@ y_test = test_data['sales'].values
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+env.reset()
 
 # Training Data
 y_hat_draws = env._predict(features=train_data_features, n_samples=100)

@@ -14,13 +14,12 @@ import matplotlib as mpl
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
-
+env.reset()
 
 # get seen state
 
 ts_train = env.time_stamps.container.data
 ts_unique = np.unique(ts_train)
-np.random.seed(1990)
 ts = np.random.choice(ts_unique, )
 
 idx = np.where(ts_train == ts)[0]
@@ -31,16 +30,21 @@ r_train = env.X_region.container.data
 p_state = p_train[idx, :]
 r_state = r_train[idx, :]
 
-products = np.unique(np.where(p_state ==1.0)[1])
-regions = np.unique(np.where(r_state ==1.0)[1])
+#products = np.unique(np.where(p_state ==1.0)[1])
+#regions = np.unique(np.where(r_state ==1.0)[1])
 
 observed_board = np.zeros([cfg.vals["n_regions"], cfg.vals["n_products"]])
 
-for i in regions:
-    for j in products:
-        observed_board[i,j] = 1.0
+for row in range(p_state.shape[0]):
+    i = np.where(r_state[row, :] ==1.0)[0][0]
+    j = np.where(p_state[row, :] ==1.0)[0][0]
+    observed_board[i, j] = 1.0
 
-env.reset()
+
+#for i in regions:
+#    for j in products:
+#        observed_board[i,j] = 1.0
+
 a = observed_board - env.state.board_config
 env._take_action(a)
 
