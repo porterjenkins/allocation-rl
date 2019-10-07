@@ -3,6 +3,7 @@ import numpy as np
 import os
 import ast
 import sys
+from envs.init_env import init_env
 
 
 def make_bin_mtx(arr, dims):
@@ -54,9 +55,7 @@ if 'env_init_loc' in vals:
     vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
 else:
     np.random.seed(1990)
-    init_r = np.random.randint(0, vals["n_regions"], vals["n_regions"])
-    init_p = np.random.randint(0, vals["n_products"], vals["n_products"])
-    init_loc = list(zip(init_r, init_p))
+    init_loc = init_env(vals['n_regions'], vals['n_products'])
     vals['env_init_loc'] = make_bin_mtx(init_loc, dims=(vals['n_regions'], vals['n_products']))
 
 
