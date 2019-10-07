@@ -112,14 +112,11 @@ class Features(object):
 
         day_vec = np.array([state.day]*n_rows)
         time_stamps = np.arange(n_rows)
-        try:
-            day_features = Features._get_one_hot_features_single_ts(day_vec, cfg.vals['n_temporal_features'])
-            product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
-            region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
-        except:
-            print(state)
-            print(state._regions)
-            print(state._products)
+
+        day_features = Features._get_one_hot_features_single_ts(day_vec, cfg.vals['n_temporal_features'])
+        product_features = Features._get_one_hot_features_single_ts(state._products, cfg.vals['n_products'])
+        region_features = Features._get_one_hot_features_single_ts(state._regions, cfg.vals['n_regions'])
+
         prices = np.array([state.prices[x] for x in state._products])
         prev_sales = Features._get_lagged_features(state.prev_sales, state._items)
         y = np.ones(n_rows).astype(theano.config.floatX)

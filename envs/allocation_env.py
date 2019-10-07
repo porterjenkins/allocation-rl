@@ -64,6 +64,9 @@ class AllocationEnv(gym.Env):
                                               )
         self.action_map = self.build_action_map()
 
+    def set_state(self, input_state):
+        self.state = copy.copy(input_state)
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]

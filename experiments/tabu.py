@@ -9,15 +9,17 @@ import config.config as cfg
 import numpy as np
 import copy
 import theano
+import matplotlib.pyplot as plt
+import json
+from utils import serialize_floats
 
 # I don't know why I need this locally, but it won't run without it... ¯\_(ツ)_/¯
-theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
+#theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
 
 
 
-TEST_T = 30
-TIME_STEPS = 30*500
-LEARNING_START = int(TIME_STEPS*.3)
+TEST_T = 3
+
 
 # Initialize environment and action space
 prior = Prior(config=cfg.vals)
@@ -28,38 +30,41 @@ action_space = np.arange(n_actions)
 def map_optimal_rewards():
     state = env.reset()
     total_reward = 0
-    reward_values = []
+    results = {'rewards': [0.0]}
     optimal_actions = []
     for day in range(TEST_T):
         action_to_reward = {}  # create a HashMap from action to reward
-
-        for action in action_space:
-            proposed_env = copy.deepcopy(env)
-            proposed_state, reward, b, i = proposed_env.step(action)
+        curr_state = copy.deepcopy(env.state)
+        feasible_actions = AllocationEnv.get_feasible_actions(curr_state.board_config)
+        for action in feasible_actions:
+            print("Iteration: {}, Action: {}".format(day, action), end='\r')
+            action = AllocationEnv.check_action(curr_state.board_config, action)
+            proposed_state, reward, b, i = env.step(action)
             action_to_reward[action] = reward
+            env.set_state(curr_state)
 
         optimal_actions.insert(day, max(action_to_reward, key=action_to_reward.get)) # Save best action on ith day
         total_reward += action_to_reward.get(optimal_actions[day])
-        reward_values.insert(day, total_reward)
+        results['rewards'].append(reward + results['rewards'][-1])
         state = env.step(optimal_actions[day])  # update the state after each day based on the optimal action taken
 
-    return state, optimal_actions, reward_values
+    return state, optimal_actions, results
 
-print(map_optimal_rewards())
+state, actions, results = map_optimal_rewards()
 
 
-#
-#
-# x = np.arange(TEST_T+1)
-# plt.plot(x, results['rewards'])
-# plt.xlabel("Timestep (t)")
-# plt.ylabel("Cumulative Reward (test)")
-# plt.savefig("figs/rl-test-{}.png".format(cfg.vals['prj_name']))
-#
-#
-# for k, v in results.items():
-#     results[k] = serialize_floats(v)
-#
-#
-# with open("output/rl-test-{}.json".format(cfg.vals['prj_name']), 'w') as f:
-#     json.dump(results, f)
+
+
+x = np.arange(TEST_T+1)
+plt.plot(x, results['rewards'])
+plt.xlabel("Timestep (t)")
+plt.ylabel("Cumulative Reward (test)")
+plt.savefig("figs/tabu-{}.png".format(cfg.vals['prj_name']))
+
+
+for k, v in results.items():
+    results[k] = serialize_floats(v)
+
+
+with open("output/tabu-{}.json".format(cfg.vals['prj_name']), 'w') as f:
+    json.dump(results, f)
