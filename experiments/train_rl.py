@@ -14,15 +14,15 @@ from utils import serialize_floats
 import json
 
 TEST_T = 30
-TIME_STEPS = 30*500
-LEARNING_START = int(TIME_STEPS*.3)
+TIME_STEPS = 30*300
+LEARNING_START = int(TIME_STEPS*.66)
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 n_actions = env.n_actions
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-model = DQN(MlpPolicy, env, verbose=2, learning_starts=LEARNING_START, exploration_fraction=.4, gamma=.5)
+model = DQN(MlpPolicy, env, verbose=2, learning_starts=LEARNING_START, gamma=.25)
 model.learn(total_timesteps=TIME_STEPS)
 
 
@@ -33,7 +33,7 @@ for i in range(TEST_T):
     action = AllocationEnv.check_action(obs['board_config'], action)
     obs, r, dones, info = env.step([action])
 
-    results['rewards'].append(r + results['rewards'][-1])
+    results['rewards'].append(r[0] + results['rewards'][-1])
 
 
 

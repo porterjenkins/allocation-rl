@@ -18,7 +18,7 @@ from utils import serialize_floats
 
 
 
-TEST_T = 3
+TEST_T = 30
 
 
 # Initialize environment and action space
@@ -45,7 +45,9 @@ def map_optimal_rewards():
 
         optimal_actions.insert(day, max(action_to_reward, key=action_to_reward.get)) # Save best action on ith day
         total_reward += action_to_reward.get(optimal_actions[day])
-        results['rewards'].append(reward + results['rewards'][-1])
+        results['rewards'].append(total_reward)
+        print("best action: {} - reward: {}".format(optimal_actions[day], action_to_reward.get(optimal_actions[day])))
+        print("total reward: {}".format(total_reward))
         state = env.step(optimal_actions[day])  # update the state after each day based on the optimal action taken
 
     return state, optimal_actions, results

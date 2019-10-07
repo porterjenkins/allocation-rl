@@ -6,12 +6,13 @@ from envs.prior import Prior
 from envs.allocation_env import AllocationEnv
 import config.config as cfg
 import matplotlib.pyplot as plt
-
+from utils import serialize_floats
+import json
 
 TIME_STEPS = 30
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
-cumul_reward = [0.0]
+results = {'rewards': [0.0]}
 
 obs = env.reset()
 for i in range(TIME_STEPS):
@@ -23,13 +24,21 @@ for i in range(TIME_STEPS):
     print(obs['day_vec'])
     print(obs['board_config'])
 
-    cumul_reward.append(cumul_reward[-1] + rew)
+    results['rewards'].append(rew + results['rewards'][-1])
 
-print(cumul_reward)
+print(results['rewards'])
 
 
 x = np.arange(TIME_STEPS+1)
-plt.plot(x, cumul_reward)
+plt.plot(x, results['rewards'])
 plt.xlabel("Timestep (t)")
 plt.ylabel("Cumulative Reward")
 plt.savefig("figs/random-policy-{}.png".format(cfg.vals['prj_name']))
+
+
+for k, v in results.items():
+    results[k] = serialize_floats(v)
+
+
+with open("output/random-policy-{}.json".format(cfg.vals['prj_name']), 'w') as f:
+    json.dump(results, f)
