@@ -32,7 +32,7 @@ y_test = test_data['sales'].values
 
 ## Linear Regression
 
-ols = LinearRegression()
+ols = LinearRegression(fit_intercept=True)
 ols.fit(X_train, y_train)
 y_hat = ols.predict(X_test)
 test_data["y_hat"] = y_hat
@@ -57,7 +57,7 @@ print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
 ## Random Forest
-rf = RandomForestRegressor()
+rf = RandomForestRegressor(n_estimators=2)
 rf.fit(X_train, y_train)
 y_hat = rf.predict(X_test)
 test_data["y_hat"] = y_hat
