@@ -14,6 +14,7 @@ import json
 from utils import serialize_floats
 
 TEST_T = 30
+LEARNING_START_PCT = .4
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
@@ -21,15 +22,20 @@ env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environm
 
 
 
-iteration_cuts = np.arange(100, 2010, 100)
+iteration_cuts = np.arange(100, 4000, 250)
+print("iteration cuts: ")
+print(iteration_cuts)
 
 results = {'mean': [],
-           "std": []
+           "std": [],
+           "sum": []
            }
 
-for ts in iteration_cuts:
+plt_ts = []
+for i, ts in enumerate(iteration_cuts):
     print("----------ITERATIONS = {}----------".format(ts))
-    model = DQN(MlpPolicy, env, verbose=2, learning_starts=100, exploration_fraction=.75)
+    ls = int(ts * LEARNING_START_PCT)
+    model = DQN(MlpPolicy, env, verbose=2, learning_starts=ts)
     model.learn(total_timesteps=ts)
     obs = env.reset()
 
@@ -42,15 +48,19 @@ for ts in iteration_cuts:
 
     test_r_mean = np.mean(test_r)
     test_r_std = np.std(test_r)
+    test_r_sum = np.sum(test_r)
     results["mean"].append(test_r_mean)
     results["std"].append(test_r_std)
+    results["sum"].append(test_r_sum)
 
-
-plt.plot(iteration_cuts, results["mean"])
-plt.errorbar(iteration_cuts, results["mean"], yerr=results["std"], fmt='.k')
-plt.xlabel("Iteration count")
-plt.ylabel("Average test reward")
-plt.savefig("figs/rl-learning-curve.pdf")
+    plt_ts.append(ts)
+    plt.plot(plt_ts, results["sum"])
+    #plt.errorbar(iteration_cuts, results["mean"], yerr=results["std"], fmt='.k')
+    plt.xlabel("Iteration count")
+    plt.ylabel("Total (sum) test reward")
+    plt.savefig("figs/rl-learning-curve.pdf")
+    plt.clf()
+    plt.close()
 
 
 for k, v in results.items():
