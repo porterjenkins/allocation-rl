@@ -108,7 +108,7 @@ class DQN(OffPolicyRLModel):
     def _get_vec_observation(obs_dict):
         assert isinstance(obs_dict, dict)
         return np.array(np.concatenate(
-                        ([obs_dict[key] for key in ['day_vec', 'board_config', 'prev_sales']]), axis=None))
+                        ([obs_dict[key] for key in ['day_vec', 'prev_sales']]), axis=None))
 
     @staticmethod
     def _is_vectorized_observation(observation, observation_space):
@@ -272,8 +272,11 @@ class DQN(OffPolicyRLModel):
                     kwargs['reset'] = reset
                     kwargs['update_param_noise_threshold'] = update_param_noise_threshold
                     kwargs['update_param_noise_scale'] = True
+
+                feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
+                action_mask = AllocationEnv.get_action_mask(feasible_actions, self.action_space.n)
                 with self.sess.as_default():
-                    action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs)[0]
+                    action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs, mask=action_mask)[0]
                 reset = False
                 # CHECK IF ACTIONS IS FEASIBLE
                 action = AllocationEnv.check_action(obs['board_config'], action)
@@ -370,7 +373,7 @@ class DQN(OffPolicyRLModel):
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
         with self.sess.as_default():
-            actions, _, _ = self.step_model.step(observation, deterministic=deterministic)
+            actions, _, _ = self.step_model.step(observation, deterministic=deterministic, mask=mask)
 
         if not vectorized_env:
             actions = actions[0]
