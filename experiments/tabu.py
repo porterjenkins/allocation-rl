@@ -35,8 +35,8 @@ def map_optimal_rewards():
     for day in range(TEST_T):
         action_to_reward = {}  # create a HashMap from action to reward
         curr_state = copy.deepcopy(env.state)
-        feasible_actions = AllocationEnv.get_feasible_actions(curr_state.board_config)
-        for action in feasible_actions:
+        #feasible_actions = AllocationEnv.get_feasible_actions(curr_state.board_config)
+        for action in action_space:
             print("Iteration: {}, Action: {}".format(day, action), end='\r')
             action = AllocationEnv.check_action(curr_state.board_config, action)
             proposed_state, reward, b, i = env.step(action)
