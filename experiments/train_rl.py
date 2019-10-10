@@ -13,9 +13,9 @@ from policies.deepq.dqn import DQN
 from utils import serialize_floats
 import json
 
-TEST_T = 30
-TIME_STEPS = 30*100
-LEARNING_START = int(TIME_STEPS*.4)
+TEST_T = cfg.vals["episode_len"]
+TIME_STEPS = 50000
+LEARNING_START = 1500
 
 
 prior = Prior(config=cfg.vals)
@@ -23,9 +23,9 @@ env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 n_actions = env.n_actions
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-model = DQN(MlpPolicy, env, verbose=2, learning_starts=LEARNING_START, gamma=.25,
-            exploration_fraction=0.1, exploration_final_eps=0.0)
-model.learn(total_timesteps=TIME_STEPS)
+model = DQN(MlpPolicy, env, verbose=2, learning_starts=LEARNING_START, gamma=.2,
+            exploration_fraction=0.35, exploration_final_eps=0.05)
+model.learn(total_timesteps=TIME_STEPS, learning_curve=True, test_t=TEST_T)
 
 
 obs = env.reset()
