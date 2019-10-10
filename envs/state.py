@@ -88,19 +88,18 @@ class State(object):
         return mean_prices['price'].to_dict()
 
     @classmethod
-    def __init_prev_sales_means(cls, df, r, p):
-        means = df[['product', 'sales']].groupby(['product']).mean()
+    def __init_prev_sales(cls, r, p):
         means_mtx = np.zeros((r, p))
-        for i in range(p):
-            prod_means = means.loc[i]
-            means_mtx[:, i] = prod_means
+        for i in range(r):
+            for j in range(p):
+                means_mtx[i, j] = np.random.uniform(10, 100)
         return means_mtx
     @classmethod
     def init_state(cls, config):
         if "prev_sales" not in config:
             train_data = pd.read_csv(config['train_data'])
             train_data = train_data[train_data['quantity'] >= 0]
-            prev_sales = State.__init_prev_sales_means(train_data, cfg.vals['n_regions'],
+            prev_sales = State.__init_prev_sales(cfg.vals['n_regions'],
                                                        cfg.vals['n_products'])
         else:
             prev_sales = config['prev_sales']
@@ -109,12 +108,14 @@ class State(object):
         # compute upper bound for valid, single-day product/sales value
         upper_prices = np.quantile(train_data['sales'], q=.99)
         upper_prices = .25*upper_prices + upper_prices
+        board_state = config['env_init_loc']
+        prev_sales_mask = prev_sales * board_state
 
         day_vec = State.get_day_vec(config['env_init_day'])
         state = State(day=config['env_init_day'],
                       day_vec=day_vec,
                       board_config=config['env_init_loc'],
-                      prev_sales=prev_sales,
+                      prev_sales=prev_sales_mask,
                       prices=mean_prices,
                       sales_bound=upper_prices)
 
