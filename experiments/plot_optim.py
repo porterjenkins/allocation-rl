@@ -30,11 +30,11 @@ dqn['rewards'] = np.array(dqn['rewards'], dtype=np.float32)
 
 assert n_random == n_tabu == n_dqn
 
-x = np.arange(n_dqn)
-plt.plot(x, random['rewards'], label='random')
-plt.plot(x, tabu['rewards'], label='tabu')
-plt.plot(x, dqn['rewards'], label='dqn')
-plt.xlabel("Timestep (t)")
-plt.ylabel("Cumulative Reward (test)")
-plt.legend(loc='best')
+plt.figure(figsize=(4,4))
+bars = [np.max(random['rewards'])/1000, np.max(tabu['rewards'])/1000, np.max(dqn['rewards'])/1000]
+barchart = plt.bar(np.arange(3),bars)
+barchart[0].set_color('slategray')
+barchart[1].set_color('goldenrod')
+plt.ylabel("Cumulative Test Reward (thousdands of $)")
+plt.xticks(np.arange(3), ['random', 'tabu', 'dqn'])
 plt.savefig("figs/optimization-all-{}.png".format(cfg.vals['prj_name']))
