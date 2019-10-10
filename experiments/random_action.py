@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from utils import serialize_floats
 import json
 
-TIME_STEPS = 30
+TIME_STEPS = cfg.vals["episode_len"]
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 results = {'rewards': [0.0]}

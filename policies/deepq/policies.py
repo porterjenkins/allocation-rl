@@ -137,7 +137,9 @@ class FeedForwardPolicy(DQNPolicy):
     def step(self, obs, state=None, mask=None, deterministic=True):
         q_values, actions_proba = self.sess.run([self.q_values, self.policy_proba], {self.obs_ph: obs})
         if deterministic:
-            actions = np.argmax(q_values, axis=1)
+            feasible_q_vals = q_values * mask
+            actions = np.argmax(feasible_q_vals, axis=1)
+
         else:
             # Unefficient sampling
             # TODO: replace the loop

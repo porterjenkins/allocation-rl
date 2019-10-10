@@ -140,7 +140,10 @@ def build_act(q_func, ob_space, ac_space, stochastic_ph, update_eps_ph, sess, ob
     eps = tf.get_variable("eps", (), initializer=tf.constant_initializer(0))
     policy = q_func(sess, ob_space, ac_space, 1, 1, None, obs_phs=obs_phs)
     obs_phs = (policy.obs_ph, policy.processed_obs)
-    deterministic_actions = tf.argmax(policy.q_values, axis=1)
+    #mask = tf.one_hot(mask_idx, depth=541, dtype=tf.float32)
+    mask = tf.placeholder(dtype=tf.float32)
+    feasible_q_values = tf.math.multiply(policy.q_values, mask)
+    deterministic_actions = tf.argmax(feasible_q_values, axis=1)
 
     batch_size = tf.shape(policy.obs_ph)[0]
     n_actions = ac_space.nvec if isinstance(ac_space, MultiDiscrete) else ac_space.n
@@ -150,13 +153,13 @@ def build_act(q_func, ob_space, ac_space, stochastic_ph, update_eps_ph, sess, ob
 
     output_actions = tf.cond(stochastic_ph, lambda: stochastic_actions, lambda: deterministic_actions)
     update_eps_expr = eps.assign(tf.cond(update_eps_ph >= 0, lambda: update_eps_ph, lambda: eps))
-    _act = tf_util.function(inputs=[policy.obs_ph, stochastic_ph, update_eps_ph],
+    _act = tf_util.function(inputs=[policy.obs_ph, stochastic_ph, update_eps_ph, mask],
                             outputs=output_actions,
                             givens={update_eps_ph: -1.0, stochastic_ph: True},
                             updates=[update_eps_expr])
 
-    def act(obs, stochastic=True, update_eps=-1):
-        return _act(obs, stochastic, update_eps)
+    def act(obs, stochastic=False, update_eps=-1, mask=None):
+        return _act(obs, stochastic, update_eps, mask)
 
     return act, obs_phs
 
@@ -294,7 +297,7 @@ def build_act_with_param_noise(q_func, ob_space, ac_space, stochastic_ph, update
         updates=updates)
 
     def act(obs, reset=None, update_param_noise_threshold=None, update_param_noise_scale=None, stochastic=True,
-            update_eps=-1):
+            update_eps=-1, mask=None):
         """
         get the action from the current observation
 
@@ -311,7 +314,7 @@ def build_act_with_param_noise(q_func, ob_space, ac_space, stochastic_ph, update
             performed for every element of the batch.
         """
         if reset is None or update_param_noise_threshold is None or update_param_noise_scale is None:
-            return _act(obs, stochastic, update_eps)
+            return _act(obs, stochastic, update_eps, mask)
         else:
             return _perturbed_act(obs, stochastic, update_eps, reset, update_param_noise_threshold,
                                   update_param_noise_scale)

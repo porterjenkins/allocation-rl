@@ -50,25 +50,25 @@ def observation_input(ob_space, batch_size=None, name='Ob', scale=False, reuse=F
 
     elif isinstance(ob_space, Dict):
         ob_space_dict = list(OrderedDict(ob_space.spaces))
-        ob_space_length = np.array([np.prod(np.array(ob_space[key].shape)) for key in ob_space_dict])
+        ob_space_length = np.array([np.prod(np.array(ob_space[key].shape)) for key in ob_space_dict if key!= 'board_config'])
 
         observation_ph = tf.placeholder(shape=(batch_size, np.sum(ob_space_length)), dtype=tf.float32, name=name)
 
         observation_day_ph = observation_ph[:, :ob_space_length[1]]
         processed_observation_day = tf.cast(observation_day_ph, tf.float32)
 
-        observation_board_ph = observation_ph[:, (ob_space_length[1]+1):(ob_space_length[1]+ob_space_length[0])]
-        processed_observation_board = tf.cast(observation_board_ph, tf.float32)
-        # rescale to [1, 0] if the bounds are defined
-        if (scale and
-                not np.any(np.isinf(ob_space["board_config"].low)) and
-                not np.any(np.isinf(ob_space["board_config"].high)) and
-                np.any((ob_space["board_config"].high - ob_space["board_config"].low) != 0)):
-            # equivalent to processed_observations / 255.0 when bounds are set to [255, 0]
-            processed_observation_board = ((processed_observation_board - ob_space["board_config"].low) /
-                                            (ob_space["board_config"].high - ob_space["board_config"].low))
+        # observation_board_ph = observation_ph[:, (ob_space_length[1]+1):(ob_space_length[1]+ob_space_length[0])]
+        # processed_observation_board = tf.cast(observation_board_ph, tf.float32)
+        # # rescale to [1, 0] if the bounds are defined
+        # if (scale and
+        #         not np.any(np.isinf(ob_space["board_config"].low)) and
+        #         not np.any(np.isinf(ob_space["board_config"].high)) and
+        #         np.any((ob_space["board_config"].high - ob_space["board_config"].low) != 0)):
+        #     # equivalent to processed_observations / 255.0 when bounds are set to [255, 0]
+        #     processed_observation_board = ((processed_observation_board - ob_space["board_config"].low) /
+        #                                     (ob_space["board_config"].high - ob_space["board_config"].low))
 
-        observation_prevsales_ph = observation_ph[:, -ob_space_length[2]:]
+        observation_prevsales_ph = observation_ph[:, -ob_space_length[-1]:]
         processed_observation_prevsales = tf.cast(observation_prevsales_ph, tf.float32)
         # rescale to [1, 0] if the bounds are defined
         if (scale and
@@ -87,11 +87,13 @@ def observation_input(ob_space, batch_size=None, name='Ob', scale=False, reuse=F
             net_arch = [32, 16]
 
         with tf.variable_scope("input_embedding", reuse=reuse):
-            with tf.variable_scope("board_embed", reuse=reuse):
-                board_latent, _ = mlp_extractor(tf.layers.flatten(processed_observation_board), net_arch, act_fun)
+            # with tf.variable_scope("board_embed", reuse=reuse):
+            #     board_latent, _ = mlp_extractor(tf.layers.flatten(processed_observation_board), net_arch, act_fun)
             with tf.variable_scope("prevsales_embed", reuse=reuse):
                 prevsales, _ = mlp_extractor(tf.layers.flatten(processed_observation_prevsales), net_arch, act_fun)
-            processed_observations = tf.concat([processed_observation_day, board_latent, prevsales],
+            processed_observations = tf.concat([processed_observation_day,
+                                                # board_latent,
+                                                prevsales],
                                                axis=-1, name="final_obs")
         # TODO: watch out! the processed observation is passed as observation_ph
         return observation_ph, processed_observations

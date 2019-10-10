@@ -15,6 +15,10 @@ from stable_baselines.a2c.utils import total_episode_reward_logger
 
 from envs.allocation_env import AllocationEnv
 
+import matplotlib.pyplot as plt
+from utils import serialize_floats
+import json
+import config.config as cfg
 
 class DQN(OffPolicyRLModel):
     """
@@ -108,7 +112,7 @@ class DQN(OffPolicyRLModel):
     def _get_vec_observation(obs_dict):
         assert isinstance(obs_dict, dict)
         return np.array(np.concatenate(
-                        ([obs_dict[key] for key in ['day_vec', 'board_config', 'prev_sales']]), axis=None))
+                        ([obs_dict[key] for key in ['day_vec', 'prev_sales']]), axis=None))
 
     @staticmethod
     def _is_vectorized_observation(observation, observation_space):
@@ -209,7 +213,7 @@ class DQN(OffPolicyRLModel):
                 self.summary = tf.summary.merge_all()
 
     def learn(self, total_timesteps, callback=None, seed=None, log_interval=100, tb_log_name="DQN",
-              reset_num_timesteps=True, replay_wrapper=None):
+              reset_num_timesteps=True, replay_wrapper=None, learning_curve=False, test_t=None):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
 
@@ -248,7 +252,47 @@ class DQN(OffPolicyRLModel):
             reset = True
             self.episode_reward = np.zeros((1,))
 
+            # variables for test eval ##
+            test_step = test_t*3
+            test_results = {'sum': []}
+            test_ts = []
+
             for _ in range(total_timesteps):
+
+                ## Test eval period ##
+                if learning_curve and _ % test_step == 0 and _ > 0:
+                    print("--> Simulating test period")
+                    self.env.reset()
+                    test_r = 0.0
+                    for i in range(test_t):
+                        feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
+                        action_mask = AllocationEnv.get_action_mask(feasible_actions, self.env.action_space.n)
+                        action, _states = self.predict(obs, mask=action_mask)
+                        action = AllocationEnv.check_action(obs['board_config'], action)
+                        obs, rewards, dones, info = self.env.step(action)
+                        test_r += rewards
+
+                    test_results["sum"].append(test_r)
+                    test_ts.append(_)
+                    self.env.reset()
+
+                    # plot test eval progress
+                    plt.plot(test_ts, test_results["sum"])
+                    # plt.errorbar(iteration_cuts, results["mean"], yerr=results["std"], fmt='.k')
+                    plt.xlabel("Iteration count")
+                    plt.ylabel("Total (sum) test reward")
+                    plt.savefig("figs/rl-learning-curve-{}.pdf".format(cfg.vals['prj_name']))
+                    plt.clf()
+                    plt.close()
+
+                    # write test eval progress
+                    write_results = {}
+                    for k, v in test_results.items():
+                        write_results[k] = serialize_floats(v)
+
+                    with open("output/rl-learning-curve-{}.json".format(cfg.vals['prj_name']), 'w') as f:
+                        json.dump(write_results, f)
+
 
                 if callback is not None:
                     # Only stop training if return value is False, not when it is None. This is for backwards
@@ -272,14 +316,17 @@ class DQN(OffPolicyRLModel):
                     kwargs['reset'] = reset
                     kwargs['update_param_noise_threshold'] = update_param_noise_threshold
                     kwargs['update_param_noise_scale'] = True
+
+                feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
+                action_mask = AllocationEnv.get_action_mask(feasible_actions, self.action_space.n)
                 with self.sess.as_default():
-                    action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs)[0]
+                    action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs, mask=action_mask)[0]
                 reset = False
                 # CHECK IF ACTIONS IS FEASIBLE
                 action = AllocationEnv.check_action(obs['board_config'], action)
                 env_action = action
                 new_obs, rew, done, info = self.env.step(env_action)
-                print("action: {} - reward: {}".format(action, rew))
+                print("action: {} - reward: {} - eps: {:.4}".format(action, rew, update_eps))
                 print(new_obs['day_vec'])
                 print(new_obs['board_config'])
                 # Store transition in the replay buffer.
@@ -370,7 +417,7 @@ class DQN(OffPolicyRLModel):
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
         with self.sess.as_default():
-            actions, _, _ = self.step_model.step(observation, deterministic=deterministic)
+            actions, _, _ = self.step_model.step(observation, deterministic=deterministic, mask=mask)
 
         if not vectorized_env:
             actions = actions[0]

@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
     metadata = {'render.modes': ['allocation'],
-                'max_cnt_reward_not_reduce_round': 30}
+                'max_cnt_reward_not_reduce_round': cfg.vals['episode_len']}
 
     def __init__(self, config, prior, load_model=True):
         self.n_regions = config['n_regions']
@@ -325,12 +325,20 @@ class AllocationEnv(gym.Env):
         return feasible_actions
 
     @staticmethod
+    def get_action_mask(actions, n_actions):
+        mask = np.zeros(n_actions)
+        for a in actions:
+            mask[a] = 1.0
+        return mask
+
+
+    @staticmethod
     def check_action(board_config, action):
         feasible_actions = AllocationEnv.get_feasible_actions(board_config)
         if action in feasible_actions:
             return action
         else:
-            return 0
+            return -1
 
 
 if __name__ == "__main__":
