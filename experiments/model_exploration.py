@@ -39,11 +39,10 @@ if cfg.vals['model_type'] == 'hierarchical':
 
     w_r_scaled = (w_r_means - mu) / sig
 
-
-
+    plt.figure(figsize=(8, 6))
     sns.heatmap(w_r_scaled.transpose(), linewidth=0.5, cmap="YlGnBu")
-    plt.xlabel('Products')
-    plt.ylabel("Regions")
+    plt.xlabel('Products', fontsize=20)
+    plt.ylabel("Regions", fontsize=20)
     plt.savefig("figs/weight-heatmap-{}.pdf".format(cfg.vals['prj_name']))
     plt.clf()
     plt.close()

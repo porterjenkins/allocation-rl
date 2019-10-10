@@ -23,13 +23,14 @@ def trim_draws(X):
 
 train_data = pd.read_csv(cfg.vals['train_data'])
 train_data = train_data[train_data.quantity > 0.0]
+train_data['date'] = pd.to_datetime(train_data['date'])
 train_data_features = Features.feature_extraction(train_data, y_col='quantity')
 
 y_train = train_data['sales'].values
 
 test_data = pd.read_csv(cfg.vals['test_data'])
 test_data = test_data[test_data.quantity > 0.0]
-#test_data = test_data[test_data.time > 3.0]
+test_data['date'] = pd.to_datetime(test_data['date'])
 test_data_features = Features.feature_extraction(test_data, y_col='quantity')
 
 y_test = test_data['sales'].values
@@ -40,23 +41,32 @@ env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 env.reset()
 
 # Training Data
-y_hat_draws = env._predict(features=train_data_features, n_samples=100)
-y_hat_draws = check_draws_inf(y_hat_draws)
-y_hat = y_hat_draws.mean(axis=0)
+y_hat_draws_train = env._predict(features=train_data_features, n_samples=100)
+y_hat_draws_train = check_draws_inf(y_hat_draws_train)
+y_hat = y_hat_draws_train.mean(axis=0)
+y_hat_draws_train = y_hat_draws_train.transpose()
+
+train_data['y_hat'] = y_hat_draws_train.mean(axis=1)
+#test_data['y_hat'] = np.median(y_hat_draws, axis=1)
+train_data['y_hat_upper'] = np.percentile(y_hat_draws_train, q=95.0, axis=1)
+train_data['y_hat_lower'] = np.percentile(y_hat_draws_train, q=5.0, axis=1)
+
+
+
 train_mae = mae(y_hat, y_train)
 train_rmse = rmse(y_hat, y_train)
 train_mape = mape(y_hat, y_train)
 
 
 # Test Data
-y_hat_draws = env._predict(features=test_data_features, n_samples=100)
-y_hat_draws = check_draws_inf(y_hat_draws)
-y_hat_draws = y_hat_draws.transpose()
+y_hat_draws_test = env._predict(features=test_data_features, n_samples=100)
+y_hat_draws_test = check_draws_inf(y_hat_draws_test)
+y_hat_draws_test = y_hat_draws_test.transpose()
 
-test_data['y_hat'] = y_hat_draws.mean(axis=1)
+test_data['y_hat'] = y_hat_draws_test.mean(axis=1)
 #test_data['y_hat'] = np.median(y_hat_draws, axis=1)
-test_data['y_hat_upper'] = np.percentile(y_hat_draws, q=95.0, axis=1)
-test_data['y_hat_lower'] = np.percentile(y_hat_draws, q=5.0, axis=1)
+test_data['y_hat_upper'] = np.percentile(y_hat_draws_test, q=95.0, axis=1)
+test_data['y_hat_lower'] = np.percentile(y_hat_draws_test, q=5.0, axis=1)
 
 test_mae = mae(test_data.y_hat, y_test)
 test_rmse = rmse(test_data.y_hat, y_test)
@@ -95,5 +105,9 @@ print("Region MAE - (test):  {:.2f}".format(prod_mae))
 print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
 print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
+all_data = pd.concat([train_data, test_data], axis=0)
+all_draws = np.concatenate([y_hat_draws_train, y_hat_draws_test],axis=0)
 
-plot_total_ppc(test_data, pd.DataFrame(y_hat_draws), fname="figs/total-ppc-{}".format(cfg.vals['prj_name']))
+test_date = test_data.iloc[0]['date']
+
+plot_total_ppc(test_data, pd.DataFrame(y_hat_draws_test), fname="figs/total-ppc-{}".format(cfg.vals['prj_name']))

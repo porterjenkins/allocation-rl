@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import json
 import numpy as np
-
+from sklearn.preprocessing import MinMaxScaler
 
 def plot_region_product(df, n_product, n_region, fname, y_col='sales'):
     x_col = 'time'
@@ -55,22 +55,41 @@ def plot_posterior_predictive_check(df, n_product, n_region, fname, y_col, y_hat
         plt.close()
 
 def plot_total_ppc(df, draws, y_col='sales', fname='total-ppc.png'):
-    totals = df[['time', y_col]].groupby('time').sum()
+    totals = df[['date', y_col]].groupby('date').sum()
     draws.reset_index(drop=True, inplace=True)
     df.reset_index(drop=True, inplace=True)
     draws_all = pd.concat((df, draws), axis=1)
     draw_cols = list(range(draws.shape[1]))
-    draw_sums = draws_all[['time'] + draw_cols].groupby('time').sum().values
+    draw_sums = draws_all[['date'] + draw_cols].groupby('date').sum().values
+
+    # rescale
+
     y_hat = draw_sums.mean(axis=1)
+    y = totals[y_col]
+
+    scaler = MinMaxScaler()
+    scaler.fit(y.values.reshape(-1,1))
+
+
     y_hat_lower = np.percentile(draw_sums, q=2.5, axis=1)
     y_hat_upper = np.percentile(draw_sums, q=97.5, axis=1)
 
+    y = scaler.transform(y.values.reshape(-1,1))
+    y_hat = scaler.transform(y_hat.reshape(-1,1))
+    y_hat_lower = scaler.transform(y_hat_lower.reshape(-1,1))
+    y_hat_upper = scaler.transform(y_hat_upper.reshape(-1, 1))
+
     x = totals.index
-    y = totals[y_col]
+
+    fig = plt.figure(figsize=(12, 8))
     plt.plot(x, y, label='observed')
     plt.plot(x, y_hat, label= 'predicted')
-    plt.fill_between(x, y_hat_lower, y_hat_upper, color='gray', alpha=0.2)
-    plt.legend(loc='best')
+    plt.ylabel("Normalized Revenue", fontsize=20)
+    plt.xlabel("Date", fontsize=20)
+    plt.xticks(fontsize=14, rotation=30)
+    plt.yticks(fontsize=14)
+    plt.fill_between(x, y_hat_lower.flatten(), y_hat_upper.flatten(), color='gray', alpha=0.2)
+    plt.legend(loc='best', fontsize=18)
     plt.savefig(fname)
 
 
