@@ -12,13 +12,14 @@ import theano
 import matplotlib.pyplot as plt
 import json
 from utils import serialize_floats
+from collections import deque
 
 # I don't know why I need this locally, but it won't run without it... ¯\_(ツ)_/¯
 #theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
 
 
 
-TEST_T = 30
+TEST_T = cfg.vals["episode_len"]
 
 
 # Initialize environment and action space
@@ -27,32 +28,50 @@ env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 n_actions = env.n_actions
 action_space = np.arange(n_actions)
 
-def map_optimal_rewards():
+def map_optimal_rewards(tabu_len, k):
     state = env.reset()
     total_reward = 0
     results = {'rewards': [0.0]}
     optimal_actions = []
+    tabu = deque(maxlen=tabu_len)
+
+    curr_best_action = 0.0
+    curr_best_val = 0.0
+
     for day in range(TEST_T):
-        action_to_reward = {}  # create a HashMap from action to reward
+
         curr_state = copy.deepcopy(env.state)
-        #feasible_actions = AllocationEnv.get_feasible_actions(curr_state.board_config)
-        for action in action_space:
+        feasible_actions = AllocationEnv.get_feasible_actions(curr_state.board_config)
+        neighbors = list(feasible_actions.difference(tabu))
+        search_space = np.random.choice(neighbors, k)
+
+        for action in search_space:
+
             print("Iteration: {}, Action: {}".format(day, action), end='\r')
             action = AllocationEnv.check_action(curr_state.board_config, action)
             proposed_state, reward, b, i = env.step(action)
-            action_to_reward[action] = reward
             env.set_state(curr_state)
 
-        optimal_actions.insert(day, max(action_to_reward, key=action_to_reward.get)) # Save best action on ith day
-        total_reward += action_to_reward.get(optimal_actions[day])
+            if reward > curr_best_val:
+                curr_best_action = action
+
+
+        optimal_actions.append(curr_best_action)
+        curr_best_action = AllocationEnv.check_action(curr_state.board_config, curr_best_action)
+
+        state, final_reward, _ , _ = env.step(curr_best_action)  # update the state after each day based on the optimal action taken
+        tabu.append(curr_best_action)
+
+        total_reward += final_reward
+        curr_best_val = final_reward
         results['rewards'].append(total_reward)
-        print("best action: {} - reward: {}".format(optimal_actions[day], action_to_reward.get(optimal_actions[day])))
+        print("best action: {} - reward: {}".format(curr_best_action, final_reward))
         print("total reward: {}".format(total_reward))
-        state = env.step(optimal_actions[day])  # update the state after each day based on the optimal action taken
+
 
     return state, optimal_actions, results
 
-state, actions, results = map_optimal_rewards()
+state, actions, results = map_optimal_rewards(tabu_len=50, k=25)
 
 
 
