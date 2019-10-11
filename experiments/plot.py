@@ -92,6 +92,27 @@ def plot_total_ppc(df, draws, y_col='sales', fname='total-ppc.png'):
     plt.legend(loc='best', fontsize=18)
     plt.savefig(fname)
 
+    cov_cntr = 0.0
+    for i, val in enumerate(y):
+        if val >= y_hat_lower[i] and val <= y_hat_upper[i]:
+            cov_cntr += 1.0
+
+
+    coverage = cov_cntr / len(y)
+    print("CI coverage rate: {:.4}".format(coverage))
+
+    dir_cntr = 0.0
+    for i in range(1, len(y)):
+        y_diff = y[i] - y[i-1]
+        y_hat_diff = y_hat[i] - y_hat[i-1]
+
+        if np.sign(y_diff) == np.sign(y_hat_diff):
+            dir_cntr += 1
+
+    directionality = dir_cntr / len(y)
+    print("Directionality prediction rate: {:.4}".format(directionality) )
+
+
 
 if __name__ == "__main__":
     import numpy as np
