@@ -38,6 +38,9 @@ vals['test_data'] = vals['prj_root'] + "/" + vals['test_data']
 vals['prior_fname'] = vals['prj_root'] + "/" + vals['prior_fname']
 vals['adj_mtx_fname'] = vals['prj_root'] + "/" + vals['adj_mtx_fname']
 
+# project random seed
+vals["random_seed"] = int(vals["random_seed"])
+
 
 with open(vals['adj_mtx_fname']) as f:
     adj_mtx_vals = json.load(f)
@@ -54,7 +57,7 @@ if 'env_init_loc' in vals:
     vals['env_init_loc'] = ast.literal_eval(vals['env_init_loc'])
     vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
 else:
-    np.random.seed(1990)
+    np.random.seed(vals["random_seed"])
     init_loc = init_env(vals['n_regions'], vals['n_products'])
     vals['env_init_loc'] = make_bin_mtx(init_loc, dims=(vals['n_regions'], vals['n_products']))
 
