@@ -36,9 +36,10 @@ def map_optimal_rewards(tabu_len, k):
     tabu = deque(maxlen=tabu_len)
 
     curr_best_action = 0.0
-    curr_best_val = 0.0
+
 
     for day in range(TEST_T):
+        curr_best_val = 0.0
 
         curr_state = copy.deepcopy(env.state)
         feasible_actions = AllocationEnv.get_feasible_actions(curr_state.board_config)
