@@ -16,6 +16,9 @@ prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 env.reset()
 
+
+print("n comp: {}".format(env.state.board_config.sum()))
+
 # get seen state
 
 ts_train = env.time_stamps.container.data
@@ -89,3 +92,4 @@ plt.xlabel("Revenue ($)")
 plt.savefig("figs/seen_state-dist.pdf")
 plt.clf()
 plt.close()
+

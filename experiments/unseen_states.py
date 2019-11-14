@@ -16,6 +16,8 @@ prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 env.reset()
 
+print("n comp: {}".format(env.state.board_config.sum()))
+
 s = State.init_state(config=cfg.vals)
 state_features = Features.featurize_state(s)
 

@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 
 board_config = np.zeros((4, 5))
@@ -56,4 +60,20 @@ plt.ylabel("Regions", fontsize=16)
 plt.xticks(fontsize=14)
 plt.yticks(fontsize=14)
 plt.savefig("figs/example-adj-mtx.pdf")
+
+
+np.random.seed(12345)
+board_config = np.random.uniform(size=4*5).reshape(4,5)
+board_config = board_config / board_config.sum(axis=0)
+#for i in range(4):
+#    board_config[i, :] = np.random.uniform(5)
+
+sns.heatmap(board_config, cmap='YlOrRd', linewidths=.5)
+
+
+plt.xlabel('Products', fontsize=16)
+plt.ylabel("Regions", fontsize=16)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.savefig("figs/example-fig-heatmap-sales.pdf")
 

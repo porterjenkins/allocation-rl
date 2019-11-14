@@ -14,7 +14,7 @@ from utils import serialize_floats
 import json
 
 TEST_T = cfg.vals["episode_len"]
-TIME_STEPS = 50000
+TIME_STEPS = 20000
 LEARNING_START = 1500
 
 
