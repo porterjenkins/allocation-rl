@@ -57,10 +57,9 @@ min_max = MinMaxScaler(feature_range=(0,1))
 df = df[df['asin'].isin(list(asin_upc_map.values()))]
 
 
-#c_matrix_init = np.random.uniform(0, .1, size=n_products**2)
-#c_matrix_init = c_matrix_init.reshape((n_products, n_products))
+c_matrix_init = np.random.uniform(0, .05, size=n_products**2)
+c_matrix_init = c_matrix_init.reshape((n_products, n_products))
 
-c_matrix_init = np.zeros((n_products, n_products))
 
 
 
