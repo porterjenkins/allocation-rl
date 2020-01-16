@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config.config as cfg
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+import json
 
 
 ASIN_FNAME = "../data/top_k_upc_asin.json"
@@ -23,6 +24,11 @@ def is_pos_def(x):
 
 def get_distance(X, theta=1):
     return np.exp(-X/theta)
+
+def ones_diag(X):
+    for i in range(X.shape[0]):
+        X[i, i] = 1.0
+    return X
 
 
 def cov_weighted_sum(dist_mat, alpha, theta1, theta2):
@@ -72,6 +78,7 @@ idx_to_asin = dict(zip(np.arange(n_products), list(asin_upc_map.values())))
 
 basket_counts = df.groupby('asin').count()
 
+D = np.zeros((n_products, n_products)) + np.random.uniform(0, .05)
 # seed matrix with counts
 
 for idx, row in basket_counts.iterrows():
@@ -84,6 +91,7 @@ for idx, row in basket_counts.iterrows():
             j = asin_to_idx[idx2]
 
             c_matrix_init[i,j] = np.log(row['rating'] + row2['rating'])
+            D[i, j] = np.sqrt(row['rating'] * row2['rating'])
 
 
 c_matrix = np.zeros((n_products, n_products)) + c_matrix_init
@@ -116,29 +124,30 @@ c_matrix = c_matrix - np.diag(np.diag(c_matrix)) + np.eye(n_products)
 c_is_pos_def = is_pos_def(c_matrix)"""
 
 # Experiment with normalized score as distance metric
-c_mat_norm = c_matrix / Z
+c_mat_norm = count_matrix / D
+c_mat_norm = ones_diag(c_mat_norm)
+print(c_mat_norm)
+print("is pos. def: {}".format(is_pos_def(c_mat_norm)))
 
 
-for i in range(n_products):
-    for j in range(n_products):
+np.savetxt('../data/item-covariance.txt', c_mat_norm)
 
-        if np.isnan(c_mat_norm[i, j]):
-            c_mat_norm[i, j] = 0.0
+with open("../data/item-covariance-idx-map.json", 'w') as f:
+    ids_as_str = {}
+    for k, v in asin_to_idx.items():
+        ids_as_str[k] = str(v)
+    json.dump(ids_as_str, f)
 
 
 
-c_mat_norm = 1 - c_mat_norm
+dist_mat = 1 - c_mat_norm
 
-eps = 0.5
-for i in range(n_products):
-    for j in range(n_products):
-        if c_mat_norm[i, j] == 0.0:
-            c_mat_norm[i, j] += eps
 
-c_mat_norm = get_distance(c_mat_norm, theta=1)
 
-for i in range(n_products):
-    c_mat_norm[i,i]=1.0
+#c_mat_norm = get_distance(c_mat_norm, theta=1)
+
+#for i in range(n_products):
+#    c_mat_norm[i,i]=1.0
 
 
 
@@ -148,27 +157,26 @@ c_is_pos_def = is_pos_def(c_mat_norm)
 x_i = np.random.multivariate_normal(np.zeros(n_products), cov=c_mat_norm)
 print(x_i)
 
-"""distance_mat = 1-c_mat_norm
-distance_mat2 = get_distance(distance_mat)
 
 
 
-c_is_pos_def = is_pos_def(distance_mat2)
 
-
-theta1 = 25
-theta2 = 3
+"""
+theta1 = 1
+theta2 = 1
 M = 100
 m = np.sqrt(theta2/theta1)
 
 lower_bound = 1 - max(1, M)
 upper_bound = 1 - np.max([1, m])
 
-alpha = np.random.uniform(low=lower_bound, high=upper_bound)
+#alpha = np.random.uniform(low=lower_bound, high=upper_bound)
 
 
 
-Sigma_with_alpha = cov_weighted_sum(c_matrix, alpha=alpha, theta1=2, theta2=1)
+Sigma_with_alpha = cov_weighted_sum(dist_mat, alpha=alpha, theta1=2, theta2=1)
+Sigma_with_alpha = ones_diag(Sigma_with_alpha)
 
 print(Sigma_with_alpha)
-print(is_pos_def(Sigma_with_alpha))"""
+print(is_pos_def(Sigma_with_alpha))
+"""
