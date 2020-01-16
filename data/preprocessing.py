@@ -150,6 +150,13 @@ PROD_SET = top_prods["UPC"].values
 global prod_to_idx
 prod_to_idx = dict(zip(PROD_SET, range(N_PRODUCTS)))
 
+with open("product_idx_map.json", 'w') as f:
+    serialized = {}
+    for k, v in prod_to_idx.items():
+        serialized[int(k)] = v
+    json.dump(serialized, f)
+
+
 # Regions per store
 n_regions = dict(zip(STORE_SET, [18, 12]))
 
