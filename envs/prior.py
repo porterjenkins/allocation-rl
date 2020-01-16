@@ -32,6 +32,9 @@ class Prior(object):
     def __get_scale_val(self, scale_val, size):
         if isinstance(scale_val, np.ndarray):
             return scale_val
+        elif isinstance(scale_val, str):
+            scale_arr = np.loadtxt(scale_val)
+            return scale_arr
         else:
             return np.eye(size)*scale_val
 
@@ -52,7 +55,7 @@ class Prior(object):
             print("---Using Diagonal Covariance--")
         # prior for product wieghts
         self.loc_w_p = self.__get_loc_val(prior['loc_w_p'], self.n_products)
-        self.scale_w_p = self.__get_scale_val(prior['loc_w_p'], self.n_products)
+        self.scale_w_p = self.__get_scale_val(prior['scale_w_p'], self.n_products)
         #prior for customer weight
         self.loc_w_c = prior['loc_w_c']
         self.scale_w_c = prior['scale_w_c']
