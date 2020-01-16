@@ -11,6 +11,7 @@ from envs.features import Features
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 from utils import mae, rmse, mape
 import numpy as np
 
@@ -57,7 +58,7 @@ print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
 ## Random Forest
-rf = RandomForestRegressor(n_estimators=2)
+rf = RandomForestRegressor(n_estimators=10)
 rf.fit(X_train, y_train)
 y_hat = rf.predict(X_test)
 test_data["y_hat"] = y_hat
@@ -78,17 +79,42 @@ print("Region MAE - (test):  {:.2f}".format(prod_mae))
 print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
 print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
+#
+# ## MLP
+# mlp = MLPRegressor(hidden_layer_sizes=(256, 128), solver='sgd')
+# mlp.fit(X_train, y_train)
+# y_hat = mlp.predict(X_test)
+# test_data["y_hat"] = y_hat
+# test_mae = mae(y_hat, y_test)
+# test_rmse = rmse(y_hat, y_test)
+# test_mape = mape(y_hat, y_test)
+#
+# print("--MLP--")
+# print("MAE - (test): {:.2f}".format(test_mae))
+# print("RMSE - (test): {:.2f}".format(test_rmse))
+# print("MAPE: - (test): {:.2f}".format(test_mape))
+#
+#
+#
+# prod_errors = test_data[['region', 'time', 'sales', 'y_hat']].groupby(['time', "region"]).sum()
+# prod_mae = mae(prod_errors.y_hat, prod_errors.sales)
+# prod_rmse = rmse(prod_errors.y_hat, prod_errors.sales)
+# prod_mape = mape(prod_errors.y_hat, prod_errors.sales)
+# print("Region MAE - (test):  {:.2f}".format(prod_mae))
+# print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
+# print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
-## MLP
-mlp = MLPRegressor(hidden_layer_sizes=(256, 128), solver='sgd')
-mlp.fit(X_train, y_train)
-y_hat = mlp.predict(X_test)
+
+## GBRT
+GBR = GradientBoostingRegressor(n_estimators=50, learning_rate=0.1, max_depth=5, random_state=0, loss='ls')
+GBR.fit(X_train, y_train)
+y_hat = GBR.predict(X_test)
 test_data["y_hat"] = y_hat
 test_mae = mae(y_hat, y_test)
 test_rmse = rmse(y_hat, y_test)
 test_mape = mape(y_hat, y_test)
 
-print("--MLP--")
+print("--GBRT--")
 print("MAE - (test): {:.2f}".format(test_mae))
 print("RMSE - (test): {:.2f}".format(test_rmse))
 print("MAPE: - (test): {:.2f}".format(test_mape))
