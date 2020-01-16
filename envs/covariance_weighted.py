@@ -11,6 +11,7 @@ import json
 
 ASIN_FNAME = "../data/top_k_upc_asin.json"
 AMAZON_COLS = ['asin', 'user_id', 'rating']
+UPC_IDX_MAP = "../data/product_idx_map.json"
 
 def z_score(arr):
     mu = np.mean(arr)
@@ -41,7 +42,13 @@ with open(ASIN_FNAME, 'r') as f:
 
     asin_upc_map = json.load(f)
 
-n_products = len(asin_upc_map)
+with open(UPC_IDX_MAP, 'r') as f:
+    upc_idx_map = json.load(f)
+
+
+
+
+n_products = len(upc_idx_map)
 
 
 
@@ -72,8 +79,16 @@ c_matrix_init = c_matrix_init.reshape((n_products, n_products))
 count_matrix = np.zeros((n_products, n_products))
 max_score = 5.0
 
-asin_to_idx = dict(zip(list(asin_upc_map.values()), np.arange(n_products)))
-idx_to_asin = dict(zip(np.arange(n_products), list(asin_upc_map.values())))
+
+asin_to_idx = {}
+idx_to_asin = {}
+
+for upc, upc_id in upc_idx_map.items():
+
+    asin = asin_upc_map[upc]
+
+    asin_to_idx[asin] = upc_id
+    idx_to_asin[upc_id] = asin
 
 
 basket_counts = df.groupby('asin').count()
