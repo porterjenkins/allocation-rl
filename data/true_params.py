@@ -1,6 +1,12 @@
 import numpy as np
 import json
 
+def ones_diag(X):
+    for i in range(X.shape[0]):
+        X[i, i] = 1.0
+    return X
+
+
 
 def getStructuredCovariance(A, n_regions, n_quantity_features, jitter=True):
     # Covariance for region features
@@ -30,41 +36,21 @@ class TrueParams(object):
 
     #def __init__(self):
 
-    def fixTrueParams(self, n_products, n_regions, A, random_seed=1990, gamma=100, persist=True):
-        #np.random.seed(random_seed)
+    def fixTrueParams(self, stores, n_products, n_regions, A, persist=True):
+
+
+
+
         params = {}
 
-        # generate day of week weights (one for each day of the week. weekends recieve heavier weight)
-        params['prior_loc_w_t'] = np.array([2.0, 0.0, 0.0, 0.0, 3.0, 5.0, 7.0, ])
-        params['prior_scale_w_t'] = np.eye(len(params['prior_loc_w_t']))*5
-        params['w_t'] = np.random.multivariate_normal(mean=params['prior_loc_w_t'],
-                                                      cov=params['prior_scale_w_t'])
+        params["prior_loc_w_p"] = np.zeros(n_products)
+        params["prior_scale_w_p"] = np.loadtxt("item-covariance.txt")
 
-        # generate product weights
-        params['prior_loc_w_p'] = np.random.uniform(5, 25, n_products)
-        params['prior_scale_w_p'] = np.eye(n_products)*5
-        params['w_p'] = np.random.multivariate_normal(mean=params['prior_loc_w_p'],
-                                                      cov=params['prior_scale_w_p'])
 
-        # generate customer weight
-        params['prior_loc_w_p'] = 5.0
-        params['prior_scale_w_p'] = 1.0
-        params['w_c'] = np.array([np.random.normal(loc=params['prior_loc_w_p'],
-                                                   scale=params['prior_scale_w_p'])])
-        # generate sales autoregressive weight
-        params['prior_loc_w_s'] = .1
-        params['prior_scale_w_s'] = 4.0
-        params['w_s'] = np.array([np.random.gamma(shape=params['prior_loc_w_s'],
-                                                   scale=params['prior_scale_w_s'])])
+        params["prior_scale_w_r"] = A*3
+        params["prior_loc_w_r"] = np.zeros(n_regions)
 
-        # generate region weights
-        params['prior_loc_w_r'] =np.random.uniform(10, 100, n_products)
-        params['prior_scale_w_r'] = A*gamma
-        params['w_r'] = np.zeros([n_products, n_regions])
-        w_r = np.random.multivariate_normal(mean=params['prior_loc_w_r'],
-                                            cov=params['prior_scale_w_r'])
-        for i in range(n_products):
-            params['w_r'][i, :] = w_r
+
 
         if persist:
             paramsSerializable = {}

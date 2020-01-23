@@ -1,5 +1,6 @@
 import pymc3 as pm
 import theano.tensor as tt
+import numpy as np
 
 class Model(object):
 
@@ -35,16 +36,20 @@ class LinearModel(Model):
                               shape=self.n_regions)
 
             # Generate Product weights
-            packed_L_p = pm.LKJCholeskyCov('packed_L_p', n=self.n_products,
-                                           eta=2., sd_dist=pm.HalfCauchy.dist(2.5))
+            #packed_L_p = pm.LKJCholeskyCov('packed_L_p', n=self.n_products,
+            #                               eta=2., sd_dist=pm.HalfCauchy.dist(2.5))
 
-            L_p = pm.expand_packed_triangular(self.n_products, packed_L_p)
+            #L_p = pm.expand_packed_triangular(self.n_products, packed_L_p)
 
-            mu_p = pm.MvNormal("mu_p", mu=self.prior.loc_w_p, cov=self.prior.scale_w_p,
+            mu_p = pm.MvNormal("mu_p", mu=self.prior.loc_w_p, cov=np.eye(self.n_products),
                                shape=self.n_products)
 
-            w_p = pm.MvNormal('w_p', mu=mu_p, chol=L_p,
-                              shape=self.n_products)
+
+            #w_p = pm.MvNormal('w_p', mu=mu_p, chol=L_p,
+            #                  shape=self.n_products)
+
+            w_p = pm.MvNormal('w_p', mu=mu_p, cov=self.prior.scale_w_p, shape=self.n_products
+                              )
 
 
             # Generate previous sales weight

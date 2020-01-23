@@ -105,12 +105,14 @@ for idx, row in basket_counts.iterrows():
             i = asin_to_idx[idx]
             j = asin_to_idx[idx2]
 
-            c_matrix_init[i,j] = np.log(row['rating'] + row2['rating'])
+            #c_matrix_init[i,j] = np.log(row['rating'] + row2['rating'])
             D[i, j] = np.sqrt(row['rating'] * row2['rating'])
 
 
 c_matrix = np.zeros((n_products, n_products)) + c_matrix_init
 Z = np.zeros((n_products, n_products)) + c_matrix_init
+
+
 
 for user_id, user_data in df.groupby(['user_id']):
     for idx1, row1 in user_data.iterrows():
@@ -139,7 +141,7 @@ c_matrix = c_matrix - np.diag(np.diag(c_matrix)) + np.eye(n_products)
 c_is_pos_def = is_pos_def(c_matrix)"""
 
 # Experiment with normalized score as distance metric
-c_mat_norm = count_matrix / D
+c_mat_norm = c_matrix / D
 c_mat_norm = ones_diag(c_mat_norm)
 print(c_mat_norm)
 print("is pos. def: {}".format(is_pos_def(c_mat_norm)))

@@ -9,7 +9,7 @@ import pandas as pd
 
 
 
-s1 = pd.read_csv("output/store-1-optim.csv",index_col=0)
+s1 = pd.read_csv("output/store-1-optim-workshop.csv",index_col=0)
 s1.columns = ["30 days", '60 days', '90 days']
 
 s1 = s1.transpose()
@@ -30,7 +30,7 @@ plt.clf()
 plt.close()
 
 
-s2 = pd.read_csv("output/store-2-optim.csv",index_col=0)
+s2 = pd.read_csv("output/store-2-optim-workshop.csv",index_col=0)
 s2.columns = ["30 days", '60 days', '90 days']
 
 s2 = s2.transpose()

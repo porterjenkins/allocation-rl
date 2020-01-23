@@ -128,3 +128,5 @@ prod_mape = mape(prod_errors.y_hat, prod_errors.sales)
 print("Region MAE - (test):  {:.2f}".format(prod_mae))
 print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
 print("Region MAPE - (test):  {:.4f}".format(prod_mape))
+
+
