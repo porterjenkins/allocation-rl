@@ -70,10 +70,9 @@ def split(df, train_pct=.8):
 
     return train, test
 
+# STORE 1
 
 store1 = pd.read_csv("store-1-raw.csv")
-store2 = pd.read_csv("store-2-raw.csv")
-
 store1['date'] = pd.to_datetime(store1['date'])
 
 print(store1.head())
@@ -100,3 +99,33 @@ store_1_test = update_timestamps(store_1_test)
 
 store_1_train.to_csv("store-1-train.csv", index=False)
 store_1_test.to_csv("store-1-test.csv", index=False)
+
+
+# STORE 2
+store2 = pd.read_csv("store-2-raw.csv")
+store2['date'] = pd.to_datetime(store2['date'])
+
+print(store2.head())
+
+
+mean_sales_2 = store2[["store_id", "UPC", "sales"]].groupby(["store_id", "UPC"]).mean()
+mean_sales_2 = mean_sales_2['sales'].to_dict()
+
+mean_sales_day_2 = store2[["store_id", "UPC", "day_of_week", "sales"]].groupby(["store_id", "UPC", "day_of_week"]).mean()
+mean_sales_day_2 = mean_sales_day_2["sales"].to_dict()
+
+
+store2 = get_prev_sales(store2 , mean_sales_2, mean_sales_day_2)
+
+date_encoder = LabelEncoder()
+store2["time"] = date_encoder.fit_transform(store2["date"])
+
+
+store_2_train, store_2_test = split(store2)
+
+store_2_train = update_timestamps(store_2_train)
+store_2_test = update_timestamps(store_2_test)
+
+
+store_2_train.to_csv("store-2-train.csv", index=False)
+store_2_test.to_csv("store-2-test.csv", index=False)
