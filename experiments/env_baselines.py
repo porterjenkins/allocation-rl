@@ -79,30 +79,30 @@ print("Region MAE - (test):  {:.2f}".format(prod_mae))
 print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
 print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
+
+ ## MLP
+mlp = MLPRegressor(hidden_layer_sizes=(256, 128, 32), solver='adam')
+mlp.fit(X_train, y_train)
+y_hat = mlp.predict(X_test)
+test_data["y_hat"] = y_hat
+test_mae = mae(y_hat, y_test)
+test_rmse = rmse(y_hat, y_test)
+test_mape = mape(y_hat, y_test)
+
+print("--MLP--")
+print("MAE - (test): {:.2f}".format(test_mae))
+print("RMSE - (test): {:.2f}".format(test_rmse))
+print("MAPE: - (test): {:.2f}".format(test_mape))
 #
-# ## MLP
-# mlp = MLPRegressor(hidden_layer_sizes=(256, 128), solver='sgd')
-# mlp.fit(X_train, y_train)
-# y_hat = mlp.predict(X_test)
-# test_data["y_hat"] = y_hat
-# test_mae = mae(y_hat, y_test)
-# test_rmse = rmse(y_hat, y_test)
-# test_mape = mape(y_hat, y_test)
-#
-# print("--MLP--")
-# print("MAE - (test): {:.2f}".format(test_mae))
-# print("RMSE - (test): {:.2f}".format(test_rmse))
-# print("MAPE: - (test): {:.2f}".format(test_mape))
 #
 #
-#
-# prod_errors = test_data[['region', 'time', 'sales', 'y_hat']].groupby(['time', "region"]).sum()
-# prod_mae = mae(prod_errors.y_hat, prod_errors.sales)
-# prod_rmse = rmse(prod_errors.y_hat, prod_errors.sales)
-# prod_mape = mape(prod_errors.y_hat, prod_errors.sales)
-# print("Region MAE - (test):  {:.2f}".format(prod_mae))
-# print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
-# print("Region MAPE - (test):  {:.4f}".format(prod_mape))
+prod_errors = test_data[['region', 'time', 'sales', 'y_hat']].groupby(['time', "region"]).sum()
+prod_mae = mae(prod_errors.y_hat, prod_errors.sales)
+prod_rmse = rmse(prod_errors.y_hat, prod_errors.sales)
+prod_mape = mape(prod_errors.y_hat, prod_errors.sales)
+print("Region MAE - (test):  {:.2f}".format(prod_mae))
+print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
+print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
 ## GBRT
