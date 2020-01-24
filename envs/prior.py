@@ -33,6 +33,7 @@ class Prior(object):
         if isinstance(scale_val, np.ndarray):
             return scale_val
         elif isinstance(scale_val, str):
+            print("getting covariance from file: {}".format(scale_val))
             scale_arr = np.loadtxt(scale_val)
             return scale_arr
         else:
