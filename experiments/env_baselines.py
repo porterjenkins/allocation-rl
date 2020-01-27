@@ -31,6 +31,8 @@ X_test = test_data_features.toarray()
 y_test = test_data['sales'].values
 
 
+print("test data shape: {}".format(test_data.shape))
+
 ## Linear Regression
 
 ols = LinearRegression(fit_intercept=True)
@@ -81,7 +83,7 @@ print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
  ## MLP
-mlp = MLPRegressor(hidden_layer_sizes=(256, 128, 32), solver='adam')
+mlp = MLPRegressor(hidden_layer_sizes=(128, 32), solver='adam')
 mlp.fit(X_train, y_train)
 y_hat = mlp.predict(X_test)
 test_data["y_hat"] = y_hat
