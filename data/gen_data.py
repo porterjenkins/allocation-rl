@@ -126,7 +126,7 @@ class DataGenerator(object):
         ## Standadarze sales data ([x - mu] / sd)
         # stores['SALES'] = (stores['SALES'] - stores['SALES'].mean()) / np.std(stores['SALES'])
         # stores['SALES_2'] = np.power(stores["SALES"], 2)
-        stores['day_of_week'] = stores['DATE'].dt.dayofweek
+
 
 
         stores = stores[stores["UPC"].isin(self.products)]
@@ -138,7 +138,7 @@ class DataGenerator(object):
         product_features = pd.concat([stores[['CUSTOMER', "DATE"]].reset_index(drop=True), product_features.reset_index(drop=True)], axis=1)
         self.product_features = product_features.groupby(["CUSTOMER", "DATE"]).sum()
 
-        self.store_data = stores[['CUSTOMER', 'DATE', 'price', 'day_of_week']]
+        self.store_data = stores[['CUSTOMER', 'DATE', 'UPC', 'price']]
 
 
 
@@ -247,9 +247,15 @@ class DataGenerator(object):
 
 
         df = pd.DataFrame(output, columns = ['store_id', 'date', 'UPC', 'product', 'region', 'quantity'])
-        df = pd.merge(df, self.store_data, left_on=['store_id', 'date'], right_on=['CUSTOMER', 'DATE'], how='left')
+        df = pd.merge(df, self.store_data[['CUSTOMER', 'UPC', 'DATE', 'price']], left_on=['store_id', 'UPC', 'date'], right_on=['CUSTOMER', 'UPC', 'DATE'], how='left')
+        df = df[['store_id', 'date', 'UPC', 'product', 'region', 'quantity', 'price']]
+        df["quantity"] = np.where(np.isnan(df["price"]), 0, df["quantity"])
+        df["price"] = np.where(np.isnan(df["price"]), 0, df["price"])
+
         df['sales'] = df['quantity'] * df["price"]
         df.sort_values(by = ['store_id', 'date', 'product', 'region'], inplace=True)
+
+        df['day_of_week'] = df['date'].dt.dayofweek
 
         return df
 
@@ -282,22 +288,6 @@ if __name__ == "__main__":
     generator.get_preprocess_data("store-level-data-17-19.csv")
     store = generator.run()
     store.to_csv(store_name + "-raw.csv", index=False)
-
-    #store = update_timestamps(store)
-    """date_encoder = LabelEncoder()
-    store["time"] = date_encoder.fit_transform(store["date"])
-    print(store.head())
-
-
-    train, test = split(store, train_pct=.8)
-
-    #train = update_timestamps(train)
-    #test = update_timestamps(test)
-
-    train.to_csv("store-1-train.csv")
-    test.to_csv("store-1-test.csv")
-
-    #print(train.head())"""
 
 
 
