@@ -74,7 +74,7 @@ test_mape = mape(test_data.y_hat, y_test)
 
 print("MAE - (test):  {:.2f}".format(test_mae))
 print("RMSE - (test):  {:.2f}".format(test_rmse))
-print("MAPE: - (test):  {:.2f}".format(test_mape))
+print("MAPE: - (test):  {:.4f}".format(test_mape))
 
 
 

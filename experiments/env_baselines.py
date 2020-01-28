@@ -46,7 +46,7 @@ test_mape = mape(y_hat, y_test)
 print("--OLS--")
 print("MAE - (test): {:.2f}".format(test_mae))
 print("RMSE - (test): {:.2f}".format(test_rmse))
-print("MAPE: - (test): {:.2f}".format(test_mape))
+print("MAPE: - (test): {:.4f}".format(test_mape))
 
 prod_errors = test_data[['region', 'time', 'sales', 'y_hat']].groupby(['time', "region"]).sum()
 prod_mae = mae(prod_errors.y_hat, prod_errors.sales)
@@ -71,7 +71,7 @@ test_mape = mape(y_hat, y_test)
 print("--RF--")
 print("MAE - (test): {:.2f}".format(test_mae))
 print("RMSE - (test): {:.2f}".format(test_rmse))
-print("MAPE: - (test): {:.2f}".format(test_mape))
+print("MAPE: - (test): {:.4f}".format(test_mape))
 
 prod_errors = test_data[['region', 'time', 'sales', 'y_hat']].groupby(['time', "region"]).sum()
 prod_mae = mae(prod_errors.y_hat, prod_errors.sales)
@@ -83,7 +83,7 @@ print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
  ## MLP
-mlp = MLPRegressor(hidden_layer_sizes=(128, 32), solver='adam')
+mlp = MLPRegressor(hidden_layer_sizes=(128, 64), solver='adam')
 mlp.fit(X_train, y_train)
 y_hat = mlp.predict(X_test)
 test_data["y_hat"] = y_hat
@@ -94,7 +94,7 @@ test_mape = mape(y_hat, y_test)
 print("--MLP--")
 print("MAE - (test): {:.2f}".format(test_mae))
 print("RMSE - (test): {:.2f}".format(test_rmse))
-print("MAPE: - (test): {:.2f}".format(test_mape))
+print("MAPE: - (test): {:.4f}".format(test_mape))
 #
 #
 #
@@ -119,7 +119,7 @@ test_mape = mape(y_hat, y_test)
 print("--GBRT--")
 print("MAE - (test): {:.2f}".format(test_mae))
 print("RMSE - (test): {:.2f}".format(test_rmse))
-print("MAPE: - (test): {:.2f}".format(test_mape))
+print("MAPE: - (test): {:.4f}".format(test_mape))
 
 
 
