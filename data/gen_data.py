@@ -232,9 +232,9 @@ class DataGenerator(object):
                 grid = grid + w_p.transpose()
                 grid = grid + w_r
 
-                grid = np.round(np.maximum(0.0, grid))
+                grid = np.ceil(np.maximum(0.0, grid))
 
-                state_mask = self.get_curr_state(p=.4)
+                state_mask = self.get_curr_state(p=.6)
                 grid = grid * state_mask
 
                 output[(cntr*block_size):((cntr*block_size) + block_size), 0] = idx[0]
@@ -247,11 +247,12 @@ class DataGenerator(object):
 
 
         df = pd.DataFrame(output, columns = ['store_id', 'date', 'UPC', 'product', 'region', 'quantity'])
+        df["quantity"] = df["quantity"].astype(float)
         df = pd.merge(df, self.store_data[['CUSTOMER', 'UPC', 'DATE', 'price']], left_on=['store_id', 'UPC', 'date'], right_on=['CUSTOMER', 'UPC', 'DATE'], how='left')
         df = df[['store_id', 'date', 'UPC', 'product', 'region', 'quantity', 'price']]
-        df["quantity"] = np.where(np.isnan(df["price"]), 0, df["quantity"])
-        df["price"] = np.where(np.isnan(df["price"]), 0, df["price"])
+        df.dropna(inplace=True)
 
+        df["price"] = df["price"].astype(float)
         df['sales'] = df['quantity'] * df["price"]
         df.sort_values(by = ['store_id', 'date', 'product', 'region'], inplace=True)
 
