@@ -13,6 +13,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import GradientBoostingRegressor
 from utils import mae, rmse, mape
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
 import numpy as np
 
 
@@ -82,7 +84,6 @@ print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
 print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
- ## MLP
 mlp = MLPRegressor(hidden_layer_sizes=(128, 64), solver='adam')
 mlp.fit(X_train, y_train)
 y_hat = mlp.predict(X_test)
@@ -132,3 +133,31 @@ print("Region RMSE - (test):  {:.2f}".format(prod_rmse))
 print("Region MAPE - (test):  {:.4f}".format(prod_mape))
 
 
+## KNN
+knn = KNeighborsRegressor(n_neighbors=5)
+knn.fit(X_train, y_train)
+y_hat = knn.predict(X_test)
+test_data["y_hat"] = y_hat
+test_mae = mae(y_hat, y_test)
+test_rmse = rmse(y_hat, y_test)
+test_mape = mape(y_hat, y_test)
+
+print("--KNN--")
+print("MAE - (test): {:.2f}".format(test_mae))
+print("RMSE - (test): {:.2f}".format(test_rmse))
+print("MAPE: - (test): {:.4f}".format(test_mape))
+
+
+## SVR
+svr_rbf = SVR(kernel='rbf', C=100, gamma=0.1, epsilon=.1)
+svr_rbf.fit(X_train, y_train)
+y_hat = svr_rbf.predict(X_test)
+test_data["y_hat"] = y_hat
+test_mae = mae(y_hat, y_test)
+test_rmse = rmse(y_hat, y_test)
+test_mape = mape(y_hat, y_test)
+
+print("--SVR--")
+print("MAE - (test): {:.2f}".format(test_mae))
+print("RMSE - (test): {:.2f}".format(test_rmse))
+print("MAPE: - (test): {:.4f}".format(test_mape))
