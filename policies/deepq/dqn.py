@@ -483,3 +483,11 @@ class DQN(OffPolicyRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save)
+
+
+
+    def update_weights(self, buffer):
+        obses_t, actions, rewards, obses_tp1, dones = buffer.sample(self.batch_size)
+        weights, batch_idxes = np.ones_like(rewards), None
+        _, td_errors = self._train_step(obses_t, actions, rewards, obses_tp1, obses_tp1, dones, weights,
+                                        sess=self.sess)

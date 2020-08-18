@@ -1,9 +1,10 @@
 from stable_baselines.deepq.replay_buffer import ReplayBuffer
 import config.config as cfg
-from envs.state import State
+from policies.deepq.policies import MlpPolicy
 from envs.allocation_env import AllocationEnv
 from envs.prior import Prior
 import numpy as np
+from policies.deepq.dqn import DQN
 
 class Mopo(object):
 
@@ -18,6 +19,10 @@ class Mopo(object):
 
         # TODO: init data buffer with transition from static data
 
+    def get_vec_observation(self, obs_dict):
+        assert isinstance(obs_dict, dict)
+        return np.array(np.concatenate(
+            ([obs_dict[key] for key in ['day_vec', 'prev_sales']]), axis=None))
 
     def get_penalized_reward(self, r, lmbda):
         variance = np.var(r)
@@ -35,7 +40,6 @@ class Mopo(object):
 
                 # sample action a_j ~ pi(s_j)
                 action, _states = self.policy.predict(state, mask=action_mask)
-                action = env.action_space.sample()
                 #action = AllocationEnv.check_action(state['board_config'], action)
 
                 # compute dynamics from env model
@@ -45,26 +49,27 @@ class Mopo(object):
 
 
                 # add (s, a, r, s') to buffer
-                self.buffer.add(obs_t=state,
+                self.buffer.add(obs_t=self.get_vec_observation(state),
                                 action=action,
                                 reward=reward,
-                                obs_tp1=new_state,
-                                done=dones)
+                                obs_tp1=self.get_vec_observation(new_state),
+                                done=float(dones))
 
                 state = new_state
 
             # TODO: update policy with samples from D_env and D_model
+            self.policy.update_weights(self.buffer)
 
 
 if __name__ == "__main__":
     prior = Prior(config=cfg.vals)
     env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
-    policy =
+    policy = DQN(MlpPolicy, env, batch_size=32)
 
-    mopo = Mopo(policy=None,
+    mopo = Mopo(policy=policy,
                 env_model=env,
-                epochs=10,
-                rollout=5,
+                epochs=15,
+                rollout=30,
                 n_actions = env.n_actions,
                 lmbda=1e-3
     )
