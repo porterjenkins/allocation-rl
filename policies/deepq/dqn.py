@@ -3,6 +3,8 @@ from functools import partial
 import tensorflow as tf
 import numpy as np
 import gym
+from tqdm import tqdm
+
 
 from stable_baselines import logger
 from policies import deepq
@@ -492,3 +494,10 @@ class DQN(OffPolicyRLModel):
         weights, batch_idxes = np.ones_like(rewards), None
         _, td_errors = self._train_step(obses_t, actions, rewards, obses_tp1, obses_tp1, dones, weights,
                                         sess=self.sess)
+
+
+    def learn_off_policy(self, total_timesteps, buffer):
+        print("Off-policy training")
+        for i in tqdm(range(total_timesteps)):
+            self.update_weights(buffer)
+
