@@ -57,10 +57,11 @@ class Mopo(object):
 
     def learn(self):
 
-        pbar = tqdm(range(self.epochs))
-        for i in pbar:
+
+        for i in range(self.epochs):
             print(f"Epoch {i}")
-            for b in range(self.rollout_batch_size):
+            pbar = tqdm(range(self.rollout_batch_size))
+            for b in pbar:
                 state = self.buffer_env.sample(batch_size=1)[0][0]
                 #state = env.reset()
 
