@@ -413,7 +413,8 @@ class DQN(OffPolicyRLModel):
         return self
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
-        observation = self._get_vec_observation(observation)[None]
+        if isinstance(observation, dict):
+            observation = self._get_vec_observation(observation)[None]
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
         with self.sess.as_default():
