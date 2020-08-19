@@ -21,7 +21,7 @@ class Mopo(object):
         self.policy = policy
         self.n_actions = n_actions
         self.lmbda = lmbda
-        self.buffer = self.init_buffer(self.buffer_path, buffer_size)
+        self.buffer_env, self.buffer_model = self.init_buffer(self.buffer_path, buffer_size)
         self.n_regions = env_model.n_regions
         self.n_products = env_model.n_products
         self.env_model.reset()
@@ -29,13 +29,17 @@ class Mopo(object):
 
     def init_buffer(self, fpath=None, buffer_size=None):
 
-        if fpath:
-            with open(fpath, 'rb') as f:
-                buffer = pickle.load(f)
-        else:
-            buffer = ReplayBuffer(buffer_size)
+        with open(fpath, 'rb') as f:
+            buffer_env = pickle.load(f)
 
-        return buffer
+        buffer_model = ReplayBuffer(buffer_size)
+
+        print("Copying environment buffer: ")
+        for i in tqdm(range(len(buffer_env))):
+            obs_t, action, reward, obs_tp1, done = buffer_env._storage[i]
+            buffer_model.add(obs_t, action, reward, obs_tp1, done)
+
+        return buffer_env, buffer_model
 
 
     def save_buffer(self, fpath="../data/mopo-buffer.p"):
@@ -53,7 +57,7 @@ class Mopo(object):
     def learn(self):
 
         for i in range(self.epochs):
-            state = self.buffer.sample(batch_size=1)[0][0]
+            state = self.buffer_env.sample(batch_size=1)[0][0]
             #state = env.reset()
             print(f"Beginning Epoch: {i}")
 
@@ -78,14 +82,16 @@ class Mopo(object):
 
 
                 # add (s, a, r, s') to buffer
-                self.buffer.add(obs_t=state,
-                                action=action,
-                                reward=reward,
-                                obs_tp1=new_state,
-                                done=float(dones))
+                self.buffer_model.add(obs_t=state,
+                                      action=action,
+                                      reward=reward,
+                                      obs_tp1=new_state,
+                                      done=float(dones))
+
+
 
             # update policy with samples from D_env and D_model
-            self.policy.update_weights(self.buffer)
+            self.policy.update_weights(self.buffer_model)
         self.save_buffer()
 
 
