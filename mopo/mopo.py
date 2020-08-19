@@ -1,0 +1,108 @@
+import numpy as np
+from tqdm import tqdm
+import pickle
+
+from stable_baselines.deepq.replay_buffer import ReplayBuffer
+import config.config as cfg
+from policies.deepq.policies import MlpPolicy
+from envs.allocation_env import AllocationEnv
+from envs.prior import Prior
+from policies.deepq.dqn import DQN
+from envs.state import State
+
+
+class Mopo(object):
+
+    def __init__(self, policy, env_model, buffer_path, epochs, rollout, n_actions, lmbda, buffer_size=50000):
+        self.epochs = epochs
+        self.env_model = env_model
+        self.buffer_path = buffer_path
+        self.rollout = rollout
+        self.policy = policy
+        self.n_actions = n_actions
+        self.lmbda = lmbda
+        self.buffer = self.init_buffer(self.buffer_path, buffer_size)
+        self.n_regions = env_model.n_regions
+        self.n_products = env_model.n_products
+        self.env_model.reset()
+
+
+    def init_buffer(self, fpath=None, buffer_size=None):
+
+        if fpath:
+            with open(fpath, 'rb') as f:
+                buffer = pickle.load(f)
+        else:
+            buffer = ReplayBuffer(buffer_size)
+
+        return buffer
+
+
+    def save_buffer(self, fpath="../data/mopo-buffer.p"):
+
+        with open(fpath, 'wb') as f:
+            pickle.dump(self.buffer, f)
+
+
+
+    def get_penalized_reward(self, r, lmbda):
+        variance = np.var(r)
+        mean = r.mean()
+        return mean - lmbda*variance
+
+    def learn(self):
+
+        for i in range(self.epochs):
+            state = self.buffer.sample(batch_size=1)[0][0]
+            #state = env.reset()
+            print(f"Beginning Epoch: {i}")
+
+            for h in tqdm(range(self.rollout)):
+                board_cfg = State.get_board_config_from_vec(state,
+                                                            n_regions=self.n_regions,
+                                                            n_products=self.n_products
+                                                            )
+
+                feasible_actions = AllocationEnv.get_feasible_actions(board_cfg)
+                #feasible_actions = AllocationEnv.get_feasible_actions(state["board_config"])
+                action_mask = AllocationEnv.get_action_mask(feasible_actions, self.n_actions)
+
+                # sample action a_j ~ pi(s_j)
+                action, _states = self.policy.predict(state.reshape(1, -1), mask=action_mask)
+
+                # compute dynamics from env model
+                new_state, r_hat, dones, info = self.env_model.step(action)
+                new_state = State.get_vec_observation(new_state)
+
+                reward = self.get_penalized_reward(r_hat, self.lmbda)
+
+
+                # add (s, a, r, s') to buffer
+                self.buffer.add(obs_t=state,
+                                action=action,
+                                reward=reward,
+                                obs_tp1=new_state,
+                                done=float(dones))
+
+            # update policy with samples from D_env and D_model
+            self.policy.update_weights(self.buffer)
+        self.save_buffer()
+
+
+if __name__ == "__main__":
+    prior = Prior(config=cfg.vals)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
+    policy = DQN(MlpPolicy, env, batch_size=32)
+
+    mopo = Mopo(policy=policy,
+                env_model=env,
+                epochs=15,
+                rollout=10,
+                n_actions = env.n_actions,
+                lmbda=1e-3,
+                buffer_path="../data/random-buffer.p"
+                #buffer_path=None
+
+    )
+
+    mopo.learn()

@@ -25,13 +25,14 @@ class AllocationEnv(gym.Env):
     metadata = {'render.modes': ['allocation'],
                 'max_cnt_reward_not_reduce_round': cfg.vals['episode_len']}
 
-    def __init__(self, config, prior, load_model=True):
+    def __init__(self, config, prior, full_posterior=False, load_model=True):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
         self.adj_mtx = config['adj_mtx']
         self.model_type = config['model_type']
         self.prior = prior
+        self.full_posterior = full_posterior
         self.env_model = None
         self.trace = None
         self.posterior_samples = 25
@@ -84,9 +85,9 @@ class AllocationEnv(gym.Env):
         '''
 
         action, is_valid_action = self.map_agent_action(action)
-        self._take_action(action)
+        _, posterior = self._take_action(action)
 
-        reward = self._get_reward(is_valid_action)
+        reward = self._get_reward(is_valid_action, posterior)
 
         ob = self._get_state()
 
@@ -220,9 +221,14 @@ class AllocationEnv(gym.Env):
         total_cost = n_region_allocated*self.cost
         return total_cost
 
-    def _get_reward(self, is_valid_action):
+    def _get_reward(self, is_valid_action, posterior):
         if is_valid_action:
-            r = self.state.prev_sales.sum() - self._get_cost()
+            sales_hat = posterior.mean(axis=0)
+            if self.full_posterior:
+                r = posterior.sum(axis=1) - self._get_cost()
+            else:
+                #r = self.state.prev_sales.sum() - self._get_cost()
+                r = sales_hat.sum() - self._get_cost()
         else:
             r = -1.0
         return r
@@ -234,7 +240,7 @@ class AllocationEnv(gym.Env):
         sales_hat = sales_posterior.mean(axis=0)
         self.state.advance(sales_hat)
 
-        return self._get_state()
+        return self._get_state(), sales_posterior
 
     def _load_data(self, model_path, train_data_path, load_model):
         train_data = pd.read_csv(train_data_path)
