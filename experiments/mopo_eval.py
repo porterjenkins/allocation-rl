@@ -17,22 +17,22 @@ from mopo.mopo import Mopo
 
 
 TEST_T = cfg.vals["episode_len"]
-TIME_STEPS = 20000
-LEARNING_START = 1500
-0
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
 policy = DQN(MlpPolicy, env, batch_size=32)
 
 mopo_dqn = Mopo(policy=policy,
                 env_model=env,
-                epochs=5,
+                rollout_batch_size=10,
+                epochs=100,
                 rollout=10,
-                n_actions=env.n_actions,
+                n_actions = env.n_actions,
                 lmbda=1e-3,
                 buffer_path="../data/random-buffer.p"
+                #buffer_path=None
 
-            )
+    )
+
 
 mopo_dqn.learn()
 

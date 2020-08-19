@@ -13,9 +13,10 @@ from envs.state import State
 
 class Mopo(object):
 
-    def __init__(self, policy, env_model, buffer_path, epochs, rollout, n_actions, lmbda, buffer_size=50000):
+    def __init__(self, policy, env_model, rollout_batch_size, buffer_path, epochs, rollout, n_actions, lmbda, buffer_size=50000):
         self.epochs = epochs
         self.env_model = env_model
+        self.rollout_batch_size = rollout_batch_size
         self.buffer_path = buffer_path
         self.rollout = rollout
         self.policy = policy
@@ -56,37 +57,41 @@ class Mopo(object):
 
     def learn(self):
 
-        for i in range(self.epochs):
-            state = self.buffer_env.sample(batch_size=1)[0][0]
-            #state = env.reset()
-            print(f"Beginning Epoch: {i}")
-
-            for h in tqdm(range(self.rollout)):
-                board_cfg = State.get_board_config_from_vec(state,
-                                                            n_regions=self.n_regions,
-                                                            n_products=self.n_products
-                                                            )
-
-                feasible_actions = AllocationEnv.get_feasible_actions(board_cfg)
-                #feasible_actions = AllocationEnv.get_feasible_actions(state["board_config"])
-                action_mask = AllocationEnv.get_action_mask(feasible_actions, self.n_actions)
-
-                # sample action a_j ~ pi(s_j)
-                action, _states = self.policy.predict(state.reshape(1, -1), mask=action_mask)
-
-                # compute dynamics from env model
-                new_state, r_hat, dones, info = self.env_model.step(action)
-                new_state = State.get_vec_observation(new_state)
-
-                reward = self.get_penalized_reward(r_hat, self.lmbda)
+        pbar = tqdm(range(self.epochs))
+        for i in pbar:
+            print(f"Epoch {i}")
+            for b in range(self.rollout_batch_size):
+                state = self.buffer_env.sample(batch_size=1)[0][0]
+                #state = env.reset()
 
 
-                # add (s, a, r, s') to buffer
-                self.buffer_model.add(obs_t=state,
-                                      action=action,
-                                      reward=reward,
-                                      obs_tp1=new_state,
-                                      done=float(dones))
+                for h in range(self.rollout):
+                    pbar.set_description(f"batch: {b} rollout: {h}")
+                    board_cfg = State.get_board_config_from_vec(state,
+                                                                n_regions=self.n_regions,
+                                                                n_products=self.n_products
+                                                                )
+
+                    feasible_actions = AllocationEnv.get_feasible_actions(board_cfg)
+                    #feasible_actions = AllocationEnv.get_feasible_actions(state["board_config"])
+                    action_mask = AllocationEnv.get_action_mask(feasible_actions, self.n_actions)
+
+                    # sample action a_j ~ pi(s_j)
+                    action, _states = self.policy.predict(state.reshape(1, -1), mask=action_mask)
+
+                    # compute dynamics from env model
+                    new_state, r_hat, dones, info = self.env_model.step(action)
+                    new_state = State.get_vec_observation(new_state)
+
+                    reward = self.get_penalized_reward(r_hat, self.lmbda)
+
+
+                    # add (s, a, r, s') to buffer
+                    self.buffer_model.add(obs_t=state,
+                                          action=action,
+                                          reward=reward,
+                                          obs_tp1=new_state,
+                                          done=float(dones))
 
 
 
@@ -102,7 +107,8 @@ if __name__ == "__main__":
 
     mopo = Mopo(policy=policy,
                 env_model=env,
-                epochs=15,
+                rollout_batch_size=10,
+                epochs=100,
                 rollout=10,
                 n_actions = env.n_actions,
                 lmbda=1e-3,
