@@ -16,7 +16,7 @@ def main(fpath):
     buffer = ReplayBuffer(size=100000)
     grouped = train_data.groupby(by='date')
 
-    #prev
+    prev_state = None
 
 
     for date, chunk in grouped:
@@ -61,8 +61,13 @@ def main(fpath):
 
         day_vec = State.get_day_vec(day)
 
-        state = {"day_vec": day_vec, "prev_sales": prev_sales}
-        print(prev_sales)
+        state = {"day_vec": day_vec, "prev_sales": prev_sales, "board_config": board_config}
+
+        if prev_state is not None:
+            action = state['board_config'] - prev_state['board_config']
+
+
+        prev_state = state
 
 
 
