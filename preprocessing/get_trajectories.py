@@ -74,9 +74,6 @@ class ActionSpace(object):
 
 
 
-
-
-
 def init_state(n_regions, n_products, product_set, prod_to_idx):
 
     mtx = np.zeros((n_regions, n_products))
@@ -95,6 +92,47 @@ def init_state(n_regions, n_products, product_set, prod_to_idx):
     return np.where(mtx <= 1, mtx, 1)
 
 
+def get_reward(chunk, date, product_set, board_cfg, weights, prod_to_idx):
+    chunk = chunk[chunk['DATE'] == date]
+
+
+    curr_sales = np.zeros_like(board_cfg)
+    reward = 0
+    for p, p_idx in prod_to_idx.items():
+        placement = board_cfg[:, p_idx]
+        if placement.sum() == 0:
+            continue
+
+        try:
+            total_sales = chunk[chunk["UPC"]==p]["SALES"].values[0]
+        except:
+            stop = 0
+            # TODO: sample from distribution
+
+        w = weights[:, p_idx]
+        w = normalize(w * placement)
+        est_sales = w* total_sales
+        curr_sales[:, p_idx] = est_sales
+
+        reward += est_sales.sum()
+
+    return reward, curr_sales
+
+
+
+def get_state(board_cfg, date, prev_sales):
+
+    day = datetime.strptime(date, "%Y-%m-%d")
+    day_vec = State.get_day_vec(day.weekday())
+
+    state = {
+        "day_vec": day_vec,
+        "board_config": board_cfg,
+        "prev_sales": prev_sales,
+
+    }
+
+    return state
 
 def get_state_and_reward(chunk, date, product_set, board_cfg, weights, prod_to_idx):
     # product_set to vector
@@ -203,11 +241,6 @@ def main():
     # (regions x products)
     weights = gen_weights(STORE_SET, priors, N_PRODUCTS)
 
-
-    prev_state = None
-
-
-
     for store in [store1, store2]:
         buffer = ReplayBuffer(size=50000)
         store_cntr = 0
@@ -216,15 +249,17 @@ def main():
 
         actions = ActionSpace(r, N_PRODUCTS)
 
-
         date_to_idx, idx_to_date = get_time_stamp(store['DATE'])
         products_map = get_dicts(store)
 
         product_t = products_map[idx_to_date[0]]
         board_cfg = init_state(r, N_PRODUCTS, product_t, prod_to_idx)
 
-        for dt, dt_idx in date_to_idx.items():
+        prev_sales = None
 
+
+
+        for dt, dt_idx in date_to_idx.items():
 
             product_t = products_map[dt]
             t_p_1 = idx_to_date.get(dt_idx+1, None)
@@ -232,30 +267,29 @@ def main():
             if t_p_1 is None:
                 break
 
+            state = get_state(board_cfg, idx_to_date[0], prev_sales)
+            _, sales_t = get_reward(store, dt, product_t, state["board_config"], weights[store_id], prod_to_idx)
+
             product_next = products_map[t_p_1]
 
-            if dt_idx == 0:
-                product_set = product_t
-
-
             # select action
-            a, a_idx = actions.sample(board_cfg, product_next, idx_to_prod)
+            a, a_idx = actions.sample(state["board_config"], product_next, idx_to_prod)
+            new_board_cfg = state["board_config"] + a
 
-            state, reward = get_state_and_reward(store, dt, product_set, board_cfg, weights[store_id], prod_to_idx)
+            new_state = get_state(new_board_cfg, t_p_1, prev_sales=sales_t)
 
-            if prev_state is not None:
-                state["prev_sales"] = prev_state["curr_sales"]
 
-            print(state["board_config"], reward)
+            reward, _ = get_reward(store, t_p_1, product_next, new_board_cfg, weights[store_id], prod_to_idx)
+
+            state = new_state
+            #print(state["board_config"], reward)
 
             # TODO: ADD (s, a, r, s') to buffer
-            buffer.add(obs_t=prev_state,
+            buffer.add(obs_t=State.get_vec_observation(state),
                        action=a,
                        reward=reward,
-                       obs_tp1=state,
+                       obs_tp1=State.get_vec_observation(new_state),
                        done=False)
-
-            prev_state = state
 
 
 
