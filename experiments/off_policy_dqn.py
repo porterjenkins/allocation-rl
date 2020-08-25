@@ -16,15 +16,14 @@ import pickle
 
 
 TEST_T = cfg.vals["episode_len"]
-TIME_STEPS = 1000
+TIME_STEPS = 1
 
 
 
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 n_actions = env.n_actions
-env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
-with open("../data/random-buffer.p", 'rb') as f:
+with open("../data/store-2-buffer.p", 'rb') as f:
     buffer_env = pickle.load(f)
 
 
@@ -39,9 +38,9 @@ for i in range(TEST_T):
     action_mask = AllocationEnv.get_action_mask(feasible_actions, n_actions)
     action, _states = model.predict(obs, mask=action_mask)
     action = AllocationEnv.check_action(obs['board_config'], action)
-    obs, r, dones, info = env.step([action])
+    obs, r, dones, info = env.step(action)
 
-    results['rewards'].append(r[0] + results['rewards'][-1])
+    results['rewards'].append(r + results['rewards'][-1])
 
 
 print(results)

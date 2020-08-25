@@ -51,3 +51,4 @@ def check_draws_inf(draws):
 
 def serialize_floats(arr):
     return ["{}".format(x) for x in arr]
+
