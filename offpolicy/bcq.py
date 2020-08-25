@@ -73,7 +73,7 @@ def update_target_variables(target_variables,
     return tf.group(name="update_all_variables", *update_ops)
 
 class BCQNetwork:
-    def __init__(self, name, state_dim, action_dim, max_action, actor_hs_list, critic_hs_list, critic_lr):
+    def __init__(self, name, state_dim, action_dim, actor_hs_list, critic_hs_list, critic_lr):
         self.name = name
         with tf.variable_scope(self.name):
             # placeholders for actor and critic networks
@@ -99,7 +99,7 @@ class BCQNetwork:
                                                                 activation_fn=tf.nn.relu)
             self.fc3_actor_ = tf.contrib.layers.fully_connected(self.fc2_actor_, action_dim,
                                                                 activation_fn=None)
-            self.actor_clip_ = tf.clip_by_value((self.fc3_actor_ + self.action_), -max_action, max_action)
+            self.actor_clip_ = tf.nn.softmax(self.fc3_actor_,axis=1)
 
             # value network
             self.fc1_q_ = tf.contrib.layers.fully_connected(tf.concat(self.state_, axis=1),
@@ -122,8 +122,9 @@ class BCQNetwork:
 
             # train critic with combined losses of q network and action loss
             self.total_loss_ = tf.losses.huber_loss(self.target_q_, self.q_1_out_) \
-                                + tf.nn.softmax_cross_entropy_with_logits(self.actor_clip_, self.action_) \
-                                + 1e-2 * tf.math.pow(self.next_fc3_actor_, tf.fill(tf.shape(self.next_fc3_actor_), 2))
+                                + tf.nn.softmax_cross_entropy_with_logits(logits=self.fc3_actor_,
+                                                                          labels=self.action_) \
+                                + 1e-2 * tf.math.pow(self.next_fc3_actor_, tf.fill(tf.shape(self.next_fc3_actor_), 2.0))
             self.total_optim_ = tf.train.AdamOptimizer(learning_rate=critic_lr).minimize(self.total_loss_)
 
     # get variables for actor and critic networks for target network updating
@@ -133,16 +134,16 @@ class BCQNetwork:
 
 class BCQ(object):
 
-    def __init__(self, state_dim, action_dim, max_action, sess, tau=0.001, actor_hs=[64, 64], actor_lr=0.001,
+    def __init__(self, state_dim, action_dim, sess, tau=0.001, actor_hs=[64, 64], actor_lr=0.001,
                      critic_hs=[64, 64], critic_lr=0.001, dqda_clipping=None, clip_norm=False, vae_lr=0.001):
         self.sess = sess
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.latent_dim = action_dim * 2
 
-        self.bcq_train = BCQNetwork("train_bcq", state_dim=state_dim, action_dim=action_dim, max_action=max_action,
+        self.bcq_train = BCQNetwork("train_bcq", state_dim=state_dim, action_dim=action_dim,
                                     actor_hs_list=actor_hs, critic_hs_list=critic_hs, critic_lr=critic_lr)
-        self.bcq_target = BCQNetwork("target_bcq", state_dim=state_dim, action_dim=action_dim, max_action=max_action,
+        self.bcq_target = BCQNetwork("target_bcq", state_dim=state_dim, action_dim=action_dim,
                                      actor_hs_list=actor_hs, critic_hs_list=critic_hs, critic_lr=critic_lr)
 
         self.sess.run(tf.global_variables_initializer())

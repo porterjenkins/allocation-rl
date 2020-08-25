@@ -9,8 +9,8 @@ import numpy as np
 import gym
 from policies.deepq.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from policies.deepq.dqn import DQN
 from utils import serialize_floats
+from policies.input import observation_input
 import json
 import tensorflow as tf
 import argparse
@@ -90,17 +90,15 @@ if __name__ == "__main__":
     n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-    env.seed(args.seed)
     tf.set_random_seed(args.seed)
     np.random.seed(args.seed)
 
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.shape[0]
-    max_action = float(env.action_space.high[0])
+    state_dim = observation_input(env.observation_space, batch_size=None, name='Ob', scale=False, reuse=tf.AUTO_REUSE)[0].shape[1].value
+    action_dim = n_actions
 
     with tf.Session() as sess:
         # Initialize policy
-        policy = BCQ.BCQ(state_dim, action_dim, max_action, sess, args.tau, actor_hs=actor_hs_list,
+        policy = BCQ(state_dim, action_dim, sess, args.tau, actor_hs=actor_hs_list,
                          actor_lr=args.actor_lr,
                          critic_hs=critic_hs_list, critic_lr=args.critic_lr, dqda_clipping=args.dqda_clip,
                          clip_norm=bool(args.clip_norm), vae_lr=args.vae_lr)
