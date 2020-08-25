@@ -71,6 +71,15 @@ class ActionSpace(object):
 
 
 
+def get_product_distributions(df):
+
+    loc = pd.DataFrame.to_dict(df[["UPC", "SALES"]].groupby("UPC").mean())
+    scale = pd.DataFrame.to_dict(df[["UPC", "SALES"]].groupby("UPC").std())
+
+    dist = {"mean": loc, "std": scale}
+
+    return dist
+
 
 
 
@@ -92,7 +101,7 @@ def init_state(n_regions, n_products, product_set, prod_to_idx):
     return np.where(mtx <= 1, mtx, 1)
 
 
-def get_reward(chunk, date, product_set, board_cfg, weights, prod_to_idx):
+def get_reward(chunk, date, prod_dist, board_cfg, weights, prod_to_idx):
     chunk = chunk[chunk['DATE'] == date]
 
 
@@ -106,8 +115,12 @@ def get_reward(chunk, date, product_set, board_cfg, weights, prod_to_idx):
         try:
             total_sales = chunk[chunk["UPC"]==p]["SALES"].values[0]
         except:
-            stop = 0
+
             # TODO: sample from distribution
+            mu = prod_dist["mean"]["SALES"][p]
+            sig = prod_dist["std"]["SALES"][p]
+
+            total_sales = np.random.normal(mu, sig)
 
         w = weights[:, p_idx]
         w = normalize(w * placement)
@@ -177,8 +190,6 @@ def get_time_stamp(dates):
 def get_dicts(df):
 
     products = {}
-
-
     grouped = df.groupby("DATE")
 
     for date, chunk in grouped:
@@ -241,9 +252,11 @@ def main():
     # (regions x products)
     weights = gen_weights(STORE_SET, priors, N_PRODUCTS)
 
+    store_cntr = 0
     for store in [store1, store2]:
+        prod_dist = get_product_distributions(store)
         buffer = ReplayBuffer(size=50000)
-        store_cntr = 0
+
         store_id = STORE_SET[store_cntr]
         r = n_regions[store_id]
 
@@ -268,7 +281,7 @@ def main():
                 break
 
             state = get_state(board_cfg, idx_to_date[0], prev_sales)
-            _, sales_t = get_reward(store, dt, product_t, state["board_config"], weights[store_id], prod_to_idx)
+            _, sales_t = get_reward(store, dt, prod_dist, state["board_config"], weights[store_id], prod_to_idx)
 
             product_next = products_map[t_p_1]
 
@@ -279,14 +292,13 @@ def main():
             new_state = get_state(new_board_cfg, t_p_1, prev_sales=sales_t)
 
 
-            reward, _ = get_reward(store, t_p_1, product_next, new_board_cfg, weights[store_id], prod_to_idx)
+            reward, _ = get_reward(store, t_p_1, prod_dist, new_board_cfg, weights[store_id], prod_to_idx)
 
             state = new_state
-            #print(state["board_config"], reward)
+            print(state["board_config"], reward)
 
-            # TODO: ADD (s, a, r, s') to buffer
             buffer.add(obs_t=State.get_vec_observation(state),
-                       action=a,
+                       action=a_idx,
                        reward=reward,
                        obs_tp1=State.get_vec_observation(new_state),
                        done=False)
