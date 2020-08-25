@@ -46,7 +46,7 @@ class Mopo(object):
     def save_buffer(self, fpath="../data/mopo-buffer.p"):
 
         with open(fpath, 'wb') as f:
-            pickle.dump(self.buffer, f)
+            pickle.dump(self.buffer_model, f)
 
 
 
@@ -59,7 +59,7 @@ class Mopo(object):
 
 
         for i in range(self.epochs):
-            print(f"Epoch {i}")
+            print(f"Epoch {i}/{self.epochs}")
             pbar = tqdm(range(self.rollout_batch_size))
             for b in pbar:
                 state = self.buffer_env.sample(batch_size=1)[0][0]
@@ -114,7 +114,6 @@ if __name__ == "__main__":
                 n_actions = env.n_actions,
                 lmbda=1e-3,
                 buffer_path="../data/random-buffer.p"
-                #buffer_path=None
 
     )
 
