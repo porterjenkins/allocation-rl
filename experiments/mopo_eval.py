@@ -14,21 +14,22 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from policies.deepq.dqn import DQN
 from utils import serialize_floats
 from mopo.mopo import Mopo
+from experiments.exp_utils import get_simple_simulator
 
 
 TEST_T = cfg.vals["episode_len"]
 prior = Prior(config=cfg.vals)
-env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
-policy = DQN(MlpPolicy, env, batch_size=32)
+env_model = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
+policy = DQN(MlpPolicy, env_model, batch_size=32)
 
 mopo_dqn = Mopo(policy=policy,
-                env_model=env,
+                env_model=env_model,
                 rollout_batch_size=10,
-                epochs=100,
-                rollout=10,
-                n_actions = env.n_actions,
-                lmbda=1e-3,
-                buffer_path="../data/random-buffer.p"
+                epochs=10,
+                rollout=30,
+                n_actions = env_model.n_actions,
+                lmbda=1e-4,
+                buffer_path="../data/store-2-buffer.p"
                 #buffer_path=None
 
     )
@@ -37,19 +38,22 @@ mopo_dqn = Mopo(policy=policy,
 mopo_dqn.learn()
 
 
+simulator = get_simple_simulator(cfg.vals)
 
-obs = env.reset()
+obs = simulator.reset()
 results = {'rewards': [0.0]}
 for i in range(TEST_T):
     feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
-    action_mask = AllocationEnv.get_action_mask(feasible_actions, env.n_actions)
+    action_mask = AllocationEnv.get_action_mask(feasible_actions, simulator.n_actions)
     action, _states = mopo_dqn.policy.predict(obs, mask=action_mask)
     action = AllocationEnv.check_action(obs['board_config'], action)
-    obs, r, dones, info = env.step(action)
-
-    results['rewards'].append(r[0] + results['rewards'][-1])
+    obs, r, dones, info = simulator.step(action)
 
 
+
+    results['rewards'].append(r + results['rewards'][-1])
+
+print(results)
 
 x = np.arange(TEST_T+1)
 plt.plot(x, results['rewards'])
