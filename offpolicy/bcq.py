@@ -185,7 +185,7 @@ class BCQ(object):
         with self.sess.as_default():
             actions = self.select_action(observation, mask=mask)
 
-        return actions[0]
+        return actions[0], None
 
     def save(self, filename, directory):
         self.saver.save(self.sess, "{}/{}.ckpt".format(directory, filename))
