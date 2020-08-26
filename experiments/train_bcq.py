@@ -14,12 +14,37 @@ import pickle
 import offpolicy.utils as bcq_utils
 from offpolicy.bcq import BCQ
 from experiments.exp_utils import evaluate_policy, get_simple_simulator
+from experiments.logger import Logger
 
 
 
 # modified from BCQ in PyTorch code: https://github.com/sfujim/BCQ
 
 def main(args):
+
+    hyp = {
+
+        "episode length": cfg.vals["episode_len"],
+        "n simulations": args.eval_eps,
+        "store": cfg.vals["train_data"],
+        "eval frequency": args.eval_freq,
+        "max timesteps": args.max_timesteps,
+        "batch size": args.batch_size,
+        "discount": args.discount,
+        "tau": args.tau,
+        "actor_lr": args.actor_lr,
+        "critic_lr": args.critic_lr,
+        "vae_lr": args.vae_lr,
+        "actor_hs": args.actor_hs,
+        "critic_hs": args.critic_hs,
+        "dqda_clip": args.dqda_clip,
+        "clip_norm": args.clip_norm
+    }
+
+    logger = Logger(hyp, "./results/", "bcq")
+
+
+
     if args.actor_hs <= 0:
         actor_hs_list = [64, 64]
     else:
@@ -71,8 +96,9 @@ def main(args):
             stats_loss = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size,
                                       discount=args.discount)
 
-            evaluations.append(evaluate_policy(policy, env, eval_episodes=args.eval_eps))
-            np.save("./results/" + file_name, evaluations)
+            reward, sigma = evaluate_policy(policy, env, eval_episodes=args.eval_eps)
+            evaluations.append((reward, sigma))
+            #np.save("./results/" + file_name, evaluations)
 
             training_iters += args.eval_freq
             print("Training iterations: " + str(training_iters))
@@ -80,6 +106,14 @@ def main(args):
 
         # Save final policy
         policy.save("%s" % (file_name), directory="./models")
+
+        logger.set_result(
+            {
+                "reward": reward,
+                "std": sigma
+            }
+        )
+        logger.write()
 
 
 if __name__ == "__main__":
