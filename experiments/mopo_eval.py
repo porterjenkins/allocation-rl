@@ -14,12 +14,10 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from policies.deepq.dqn import DQN
 from utils import serialize_floats
 from mopo.mopo import Mopo
-from experiments.exp_utils import get_simple_simulator
-
+from experiments.exp_utils import get_simple_simulator, evaluate_policy
 
 def main(args):
 
-    TEST_T = cfg.vals["episode_len"]
     prior = Prior(config=cfg.vals)
     env_model = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
     policy = DQN(MlpPolicy, env_model, batch_size=args.batch_size)
@@ -41,36 +39,7 @@ def main(args):
 
 
     simulator = get_simple_simulator(cfg.vals)
-
-    obs = simulator.reset()
-    results = {'rewards': [0.0]}
-    for i in range(TEST_T):
-        feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
-        action_mask = AllocationEnv.get_action_mask(feasible_actions, simulator.n_actions)
-        action, _states = mopo_dqn.policy.predict(obs, mask=action_mask)
-        action = AllocationEnv.check_action(obs['board_config'], action)
-        obs, r, dones, info = simulator.step(action)
-
-
-
-        results['rewards'].append(r + results['rewards'][-1])
-
-    print(results)
-
-    x = np.arange(TEST_T+1)
-    plt.plot(x, results['rewards'])
-    plt.xlabel("Timestep (t)")
-    plt.ylabel("Cumulative Reward (test)")
-    plt.savefig("figs/mopo-test-{}.png".format(cfg.vals['prj_name']))
-
-
-    for k, v in results.items():
-        results[k] = serialize_floats(v)
-
-
-    with open("output/mopo-test.json", 'w') as f:
-        json.dump(results, f)
-
+    reward, sigma = evaluate_policy(mopo_dqn.policy, simulator, args.eval_eps)
 
 
 if __name__ == "__main__":
@@ -80,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument('--rollouts', type=int, default=30)
     parser.add_argument('--lmbda', type=float, default=1e-4)
     parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--eval-eps', type=int, default=10)
 
     args = parser.parse_args()
 
