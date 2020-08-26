@@ -17,9 +17,9 @@ class Logger(object):
     def write(self):
 
         now = str(datetime.datetime.now())
-        fpath = os.path.join(self.dir, self.prj_name, now) + ".txt"
+        fpath = self.dir + f"{self.prj_name}-{now}.txt"
 
-        with open(self.fpath, "w") as f:
+        with open(fpath, "w") as f:
 
             f.write("------------------\n")
             f.write("Hyperparameters\n")

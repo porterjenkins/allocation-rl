@@ -25,9 +25,13 @@ def main(args):
             "rollouts": args.rollouts,
             "lambda": args.lmbda,
             "batch size": args.batch_size,
-            "poster samples": args.posterior_samples
-
+            "poster samples": args.posterior_samples,
+            "episode length": cfg.vals["episode_len"],
+            "n simulations": args.eval_eps,
+            "store": cfg.vals["train_data"]
            }
+
+
     logger = Logger(hyp, "./results/", "pc_mopo")
 
 
