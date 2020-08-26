@@ -22,15 +22,15 @@ def main(args):
     TEST_T = cfg.vals["episode_len"]
     prior = Prior(config=cfg.vals)
     env_model = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
-    policy = DQN(MlpPolicy, env_model, batch_size=args["batch_size"])
+    policy = DQN(MlpPolicy, env_model, batch_size=args.batch_size)
 
     mopo_dqn = Mopo(policy=policy,
                     env_model=env_model,
                     rollout_batch_size=10,
-                    epochs=args["epochs"],
-                    rollout=args["rollouts"],
+                    epochs=args.epochs,
+                    rollout=args.rollouts,
                     n_actions = env_model.n_actions,
-                    lmbda=args["lambda"],
+                    lmbda=args.lmbda,
                     buffer_path="../data/store-2-buffer.p"
                     #buffer_path=None
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--rollouts', type=int, default=30)
-    parser.add_argument('--lambda', type=float, default=1e-4)
+    parser.add_argument('--lmbda', type=float, default=1e-4)
     parser.add_argument('--batch-size', type=int, default=32)
 
     args = parser.parse_args()
