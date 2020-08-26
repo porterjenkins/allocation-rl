@@ -14,12 +14,30 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from policies.deepq.dqn import DQN
 from utils import serialize_floats
 from mopo.mopo import Mopo
+
 from experiments.exp_utils import get_simple_simulator, evaluate_policy
+from experiments.logger import Logger
 
 def main(args):
 
+    hyp = {
+            "epochs": args.epochs,
+            "rollouts": args.rollouts,
+            "lambda": args.lmbda,
+            "batch size": args.batch_size,
+            "poster samples": args.posterior_samples
+
+           }
+    logger = Logger(hyp, "./results/", "pc_mopo")
+
+
     prior = Prior(config=cfg.vals)
-    env_model = AllocationEnv(config=cfg.vals, prior=prior, load_model=True, full_posterior=True)
+    env_model = AllocationEnv(config=cfg.vals,
+                              prior=prior,
+                              load_model=True,
+                              full_posterior=True,
+                              posterior_samples=args.posterior_samples)
+
     policy = DQN(MlpPolicy, env_model, batch_size=args.batch_size)
 
     mopo_dqn = Mopo(policy=policy,
@@ -41,6 +59,14 @@ def main(args):
     simulator = get_simple_simulator(cfg.vals)
     reward, sigma = evaluate_policy(mopo_dqn.policy, simulator, args.eval_eps)
 
+    logger.set_result(
+                        {
+                        "reward": reward,
+                        "std": sigma
+                        }
+                    )
+    logger.write()
+
 
 if __name__ == "__main__":
 
@@ -50,6 +76,7 @@ if __name__ == "__main__":
     parser.add_argument('--lmbda', type=float, default=1e-4)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--eval-eps', type=int, default=10)
+    parser.add_argument('--posterior-samples', type=int, default=25)
 
     args = parser.parse_args()
 

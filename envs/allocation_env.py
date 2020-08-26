@@ -25,7 +25,7 @@ class AllocationEnv(gym.Env):
     metadata = {'render.modes': ['allocation'],
                 'max_cnt_reward_not_reduce_round': cfg.vals['episode_len']}
 
-    def __init__(self, config, prior, full_posterior=False, load_model=True):
+    def __init__(self, config, prior, full_posterior=False, load_model=True, posterior_samples=25):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
@@ -35,7 +35,7 @@ class AllocationEnv(gym.Env):
         self.full_posterior = full_posterior
         self.env_model = None
         self.trace = None
-        self.posterior_samples = 25
+        self.posterior_samples = posterior_samples
         self.max_rollouts = 3 # 90 day rollouts
         self.sales = []
         self.seed()
