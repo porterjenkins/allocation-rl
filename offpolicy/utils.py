@@ -1,5 +1,5 @@
 import numpy as np
-
+import pickle
 # Code based on:
 # https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
 # modified from BCQ in PyTorch code: https://github.com/sfujim/BCQ
@@ -40,7 +40,8 @@ class ReplayBuffer:
 			np.array(done).reshape(-1,)) #np.array(done).reshape(-1, 1))
 
 	def save(self, filename):
-		np.save("./buffers/"+filename+".npy", self.storage)
+		np.save("./data/"+filename+".npy", self.storage)
 
 	def load(self, filename):
-		self.storage = np.load("./buffers/"+filename+".npy",allow_pickle=True)
+		with open(f"./data/{filename}-buffer.p", 'rb') as f:
+			self.storage = pickle.load(f)

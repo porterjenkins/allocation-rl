@@ -79,15 +79,15 @@ class BCQNetwork:
             # placeholders for actor and critic networks
             self.state_ = tf.placeholder(tf.float32, [None, state_dim], name='state')
             # placeholders for actor network
-            self.action_ = tf.placeholder(dtype=tf.float32, shape=[None, action_dim], name='action')
+            self.action_ = tf.placeholder(dtype=tf.int32, shape=[None, ], name='action')
             # placeholders for target critic soft q network
             self.reward_ = tf.placeholder(tf.float32, [None], name='rewards')
-            self.discount_ = tf.placeholder(tf.float32, [None], name='discounts')
+            self.discount_ = tf.placeholder(tf.float32, [None,], name='discounts')
             self.flipped_done_ = tf.placeholder(tf.float32, [None], name='flipped_dones')
             # placeholders for training generator network
-            self.next_target_q_ = tf.placeholder(tf.float32, [None, 1], name='next_target_q')
+            self.next_target_q_ = tf.placeholder(tf.float32, [None, action_dim], name='next_target_q')
 
-            self.next_q_ = tf.placeholder(tf.float32, [None, 1], name='next_q')
+            self.next_q_ = tf.placeholder(tf.float32, [None, action_dim], name='next_q')
             self.next_fc3_actor_= tf.placeholder(tf.float32, [None, action_dim], name='next_imt')
             self.next_action_= tf.placeholder(tf.float32, [None, action_dim], name='next_action')
 
@@ -99,7 +99,7 @@ class BCQNetwork:
                                                                 activation_fn=tf.nn.relu)
             self.fc3_actor_ = tf.contrib.layers.fully_connected(self.fc2_actor_, action_dim,
                                                                 activation_fn=None)
-            self.actor_clip_ = tf.nn.softmax(self.fc3_actor_,axis=1)
+            self.action_pred_ = tf.nn.softmax(self.fc3_actor_,axis=1)
 
             # value network
             self.fc1_q_ = tf.contrib.layers.fully_connected(tf.concat(self.state_, axis=1),
@@ -109,22 +109,26 @@ class BCQNetwork:
             self.fc3_q_ = tf.contrib.layers.fully_connected(self.fc2_q_, action_dim,
                                                                 activation_fn=tf.nn.relu)
 
-            self.q_1_out_ = tf.contrib.layers.fully_connected(self.fc3_q_, 1, activation_fn=tf.nn.softmax)
+            self.q_1_out_ = tf.contrib.layers.fully_connected(self.fc3_q_, action_dim, activation_fn=tf.nn.softmax)
 
             imt = tf.math.exp(self.next_action_)
             imt = tf.cast(imt/tf.math.reduce_max(imt, axis=1, keepdims=True) > 0.3, tf.float32)
-            next_action = tf.argmax(imt * self.next_q_ + (1 - imt) * (-1e8), axis=1)
+            next_action = tf.reshape(tf.cast(tf.argmax(imt * self.next_q_ + (1 - imt) * (-1e8), axis=1), tf.int32), (-1, 1))
 
-
+            next_action = tf.stack([tf.range(tf.shape(next_action)[0]), next_action[:, 0]], axis=-1)
             self.target_q_ = self.reward_ + \
                              self.flipped_done_ * self.discount_ * tf.gather_nd(self.next_target_q_, next_action)
             # next_state estimate is 0 if done
 
             # train critic with combined losses of q network and action loss
-            self.total_loss_ = tf.losses.huber_loss(self.target_q_, self.q_1_out_) \
+            self.total_loss_ = tf.losses.huber_loss(self.target_q_,
+                                                    tf.reduce_sum(tf.multiply(self.q_1_out_,
+                                                                              tf.one_hot(self.action_, depth=action_dim)
+                                                                              ), axis=1)) \
                                 + tf.nn.softmax_cross_entropy_with_logits(logits=self.fc3_actor_,
-                                                                          labels=self.action_) \
-                                + 1e-2 * tf.math.pow(self.next_fc3_actor_, tf.fill(tf.shape(self.next_fc3_actor_), 2.0))
+                                                                          labels=tf.one_hot(self.action_, depth=action_dim)) \
+                                + 1e-2 * tf.reduce_sum(tf.math.pow(self.next_fc3_actor_,
+                                                                   tf.fill(tf.shape(self.next_fc3_actor_), 2.0)), axis=1)
             self.total_optim_ = tf.train.AdamOptimizer(learning_rate=critic_lr).minimize(self.total_loss_)
 
     # get variables for actor and critic networks for target network updating
@@ -140,6 +144,7 @@ class BCQ(object):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.latent_dim = action_dim * 2
+        self.eval_eps = 0.001
 
         self.bcq_train = BCQNetwork("train_bcq", state_dim=state_dim, action_dim=action_dim,
                                     actor_hs_list=actor_hs, critic_hs_list=critic_hs, critic_lr=critic_lr)
@@ -156,22 +161,31 @@ class BCQ(object):
                                                              self.bcq_train.get_network_variables(), tau=1.0)
         self.sess.run(self.target_same_init)
 
-    def select_action(self, state):
-        # duplicate state times 10
+    def select_action(self, state, mask=None):
+
         if np.random.uniform(0,1) > self.eval_eps:
             q_, action_, fc3_actor_ = self.sess.run(
-                [self.bcq_train.q_1_out_, self.bcq_train.action_, self.bcq_train.fc3_actor_],
+                [self.bcq_train.q_1_out_, self.bcq_train.action_pred_, self.bcq_train.fc3_actor_],
                 feed_dict={
                     self.bcq_train.state_: state
                 }
             )
+            imt = np.array(action_/np.max(action_, axis=1, keepdims=True) > 0.3)
 
-            imt = tf.math.exp(self.next_action_)
-            imt = tf.cast(imt/tf.math.reduce_max(imt, axis=1, keepdims=True) > 0.3, tf.float32)
-            return int(tf.argmax(imt * self.next_q_ + (1 - imt) * (-1e8), axis=1))
+            if mask is not None:
+                imt = np.array(imt & np.array(mask, dtype=bool),dtype=int)
+            return np.argmax(imt * q_ + (1 - imt) * (-1e8), axis=1)
         else:
-            return np.random.randint(self.action_dim)
+            return np.random.randint(self.action_dim, size=state.shape[0])
 
+    def predict(self, observation, state=None, mask=None, deterministic=True):
+        if isinstance(observation, dict):
+            observation = DQN._get_vec_observation(observation)[None]
+
+        with self.sess.as_default():
+            actions = self.select_action(observation, mask=mask)
+
+        return actions[0]
 
     def save(self, filename, directory):
         self.saver.save(self.sess, "{}/{}.ckpt".format(directory, filename))
@@ -186,20 +200,23 @@ class BCQ(object):
         stats_loss["critic_loss"] = 0.0
         stats_loss["vae_loss"] = 0.0
         for it in range(iterations):
+
             # Sample batches: done_batch has bool flipped in RL loop
-            state_batch, next_state_batch, action_batch, reward_batch, flipped_done_batch = replay_buffer.sample(
+            state_batch, action_batch, reward_batch, next_state_batch, flipped_done_batch = replay_buffer.sample(
                 batch_size)  # already flipped done bools
+
+            # todo add action mask
 
             # get next-state q, imt and i
             next_q_, next_action_, next_fc3_actor_ = self.sess.run(
-                [self.bcq_train.q_1_out_, self.bcq_train.action_, self.bcq_train.fc3_actor_],
+                [self.bcq_train.q_1_out_, self.bcq_train.action_pred_, self.bcq_train.fc3_actor_],
                 feed_dict={
                     self.bcq_train.state_: next_state_batch
                 }
             )
 
             # get next state target q
-            next_target_q_ = self.sess.run([self.bcq_target.next_target_q_], feed_dict={
+            next_target_q_ = self.sess.run(self.bcq_target.q_1_out_, feed_dict={
                 self.bcq_target.state_: next_state_batch
             })
 
@@ -208,12 +225,12 @@ class BCQ(object):
                 self.bcq_train.state_: state_batch,
                 self.bcq_train.action_: action_batch,
                 self.bcq_train.reward_: reward_batch,
-                self.bcq_target.flipped_done_: flipped_done_batch,
-                self.bcq_target.discount_: discount_batch,
-                self.next_target_q_: next_target_q_,
-                self.next_q_: next_q_,
-                self.next_fc3_actor_: next_fc3_actor_,
-                self.next_action_: next_action_
+                self.bcq_train.flipped_done_: flipped_done_batch.astype(float),
+                self.bcq_train.discount_: discount_batch,
+                self.bcq_train.next_target_q_: next_target_q_,
+                self.bcq_train.next_q_: next_q_,
+                self.bcq_train.next_fc3_actor_: next_fc3_actor_,
+                self.bcq_train.next_action_: next_action_
 
             })
 

@@ -9,14 +9,16 @@ import numpy as np
 import gym
 from policies.deepq.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines.deepq.replay_buffer import ReplayBuffer
 from utils import serialize_floats
 from policies.input import observation_input
 import json
 import tensorflow as tf
 import argparse
 import os
+import pickle
 
-import utils
+import offpolicy.utils as bcq_utils
 from offpolicy.bcq import BCQ
 
 
@@ -34,8 +36,12 @@ def evaluate_policy(policy, eval_episodes=10):
         obs = env.reset()
         done = False
         while not done:
-            action = policy.select_action(np.array(obs))
-            obs, reward, done, _ = env.step(action)
+            feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
+            action_mask = AllocationEnv.get_action_mask(feasible_actions, env.n_actions)
+
+            action = policy.predict(obs, mask=action_mask)
+            action = AllocationEnv.check_action(obs['board_config'], action)
+            obs, reward, done, _ = env.step([action])
             avg_reward += reward
 
     avg_reward /= eval_episodes
@@ -86,7 +92,7 @@ if __name__ == "__main__":
         os.makedirs("./results")
 
     prior = Prior(config=cfg.vals)
-    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
     n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
@@ -104,8 +110,8 @@ if __name__ == "__main__":
                          clip_norm=bool(args.clip_norm), vae_lr=args.vae_lr)
 
         # Load buffer
-        replay_buffer = utils.ReplayBuffer()
-        replay_buffer.load(buffer_name)
+        with open(f"../data/store-2-buffer.p", 'rb') as f:
+            replay_buffer  = pickle.load(f)
 
         evaluations = []
 
