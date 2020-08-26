@@ -37,7 +37,7 @@ def evaluate_policy(policy, eval_episodes=10):
         done = False
         while not done:
             feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
-            action_mask = AllocationEnv.get_action_mask(feasible_actions, env.n_actions)
+            action_mask = AllocationEnv.get_action_mask(feasible_actions, env.action_space.n)
 
             action = policy.predict(obs, mask=action_mask)
             action = AllocationEnv.check_action(obs['board_config'], action)
