@@ -42,7 +42,7 @@ def evaluate_policy(policy, eval_episodes=10):
             action = policy.predict(obs, mask=action_mask)
             action = AllocationEnv.check_action(obs['board_config'], action)
             obs, reward, done, _ = env.step([action])
-            avg_reward += reward
+            avg_reward += reward[0]
 
     avg_reward /= eval_episodes
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         os.makedirs("./results")
 
     prior = Prior(config=cfg.vals)
-    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=False)
+    env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
     n_actions = env.n_actions
     env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
             stats_loss = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size,
                                       discount=args.discount)
 
-            evaluations.append(evaluate_policy(policy))
+            evaluations.append(evaluate_policy(policy, eval_episodes=2))
             np.save("./results/" + file_name, evaluations)
 
             training_iters += args.eval_freq
