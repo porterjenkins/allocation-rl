@@ -19,6 +19,9 @@ class Logger(object):
         now = str(datetime.datetime.now())
         fpath = self.dir + f"{self.prj_name}-{now}.txt"
 
+        if not os.path.exists(self.dir):
+            os.mkdir(self.dir)
+
         with open(fpath, "w") as f:
 
             f.write("------------------\n")

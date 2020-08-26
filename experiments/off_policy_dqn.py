@@ -14,9 +14,18 @@ from policies.deepq.policies import MlpPolicy
 from policies.deepq.dqn import DQN
 from utils import serialize_floats
 from experiments.exp_utils import get_simple_simulator, evaluate_policy
+from experiments.logger import Logger
 
 
 def main(args):
+    hyp = {
+        "learning timesteps": args.epochs,
+        "episode length": cfg.vals["episode_len"],
+        "n simulations": args.eval_eps,
+        "store": cfg.vals["train_data"]
+    }
+
+    logger = Logger(hyp, "./results/", "off_policy_dqn")
 
     with open("../data/store-2-buffer.p", 'rb') as f:
         buffer_env = pickle.load(f)
@@ -28,6 +37,14 @@ def main(args):
 
 
     reward, sigma = evaluate_policy(model, simulator, args.eval_eps)
+
+    logger.set_result(
+        {
+            "reward": reward,
+            "std": sigma
+        }
+    )
+    logger.write()
 
 
 if __name__ == "__main__":
