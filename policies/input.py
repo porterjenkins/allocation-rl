@@ -50,7 +50,7 @@ def observation_input(ob_space, batch_size=None, name='Ob', scale=False, reuse=F
 
     elif isinstance(ob_space, Dict):
         ob_space_dict = list(OrderedDict(ob_space.spaces))
-        ob_space_length = np.array([np.prod(np.array(ob_space[key].shape)) for key in ob_space_dict if key!= 'board_config'])
+        ob_space_length = np.array([np.prod(np.array(ob_space[key].shape)) for key in ob_space_dict])
 
         observation_ph = tf.placeholder(shape=(batch_size, np.sum(ob_space_length)), dtype=tf.float32, name=name)
 

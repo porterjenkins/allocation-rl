@@ -16,6 +16,7 @@ from policies.deepq.policies import DQNPolicy
 from stable_baselines.a2c.utils import total_episode_reward_logger
 
 from envs.allocation_env import AllocationEnv
+from envs.state import State
 
 import matplotlib.pyplot as plt
 from utils import serialize_floats
@@ -109,12 +110,6 @@ class DQN(OffPolicyRLModel):
     def _get_pretrain_placeholders(self):
         policy = self.step_model
         return policy.obs_ph, tf.placeholder(tf.int32, [None]), policy.q_values
-
-    @staticmethod
-    def _get_vec_observation(obs_dict):
-        assert isinstance(obs_dict, dict)
-        return np.array(np.concatenate(
-                        ([obs_dict[key] for key in ['day_vec', 'prev_sales']]), axis=None))
 
     @staticmethod
     def _is_vectorized_observation(observation, observation_space):
@@ -322,7 +317,7 @@ class DQN(OffPolicyRLModel):
                 feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
                 action_mask = AllocationEnv.get_action_mask(feasible_actions, self.action_space.n)
                 with self.sess.as_default():
-                    action = self.act(self._get_vec_observation(obs)[None], update_eps=update_eps, **kwargs, mask=action_mask)[0]
+                    action = self.act(State.get_vec_observation(obs)[None], update_eps=update_eps, **kwargs, mask=action_mask)[0]
                 reset = False
                 # CHECK IF ACTIONS IS FEASIBLE
                 action = AllocationEnv.check_action(obs['board_config'], action)
@@ -332,8 +327,8 @@ class DQN(OffPolicyRLModel):
                 print(new_obs['day_vec'])
                 print(new_obs['board_config'])
                 # Store transition in the replay buffer.
-                self.replay_buffer.add(self._get_vec_observation(obs), action, rew,
-                                       self._get_vec_observation(new_obs), float(done))
+                self.replay_buffer.add(State.get_vec_observation(obs), action, rew,
+                                       State.get_vec_observation(new_obs), float(done))
                 obs = new_obs
 
                 if writer is not None:
@@ -416,7 +411,7 @@ class DQN(OffPolicyRLModel):
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
         if isinstance(observation, dict):
-            observation = self._get_vec_observation(observation)[None]
+            observation = State.get_vec_observation(observation)[None]
         vectorized_env = self._is_vectorized_observation(observation, self.observation_space)
 
         with self.sess.as_default():
