@@ -15,7 +15,7 @@ from stable_baselines.deepq.replay_buffer import ReplayBuffer
 from envs.state import State
 
 
-TIME_STEPS = cfg.vals["episode_len"]
+TIME_STEPS = 300
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 results = {'rewards': [0.0]}
@@ -56,8 +56,8 @@ for k, v in results.items():
     results[k] = serialize_floats(v)
 
 
-with open("output/random-policy-{}.json".format(cfg.vals['prj_name']), 'w') as f:
-    json.dump(results, f)
+#with open("output/random-policy-{}.json".format(cfg.vals['prj_name']), 'w') as f:
+#    json.dump(results, f)
 
 with open("../data/random-buffer.p", 'wb') as f:
     pickle.dump(buffer, f)

@@ -27,7 +27,7 @@ def main(args):
 
     logger = Logger(hyp, "./results/", "off_policy_dqn")
 
-    with open("../data/store-2-buffer.p", 'rb') as f:
+    with open("../data/random-buffer.p", 'rb') as f:
         buffer_env = pickle.load(f)
 
     simulator = get_simple_simulator(cfg.vals)
