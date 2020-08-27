@@ -52,3 +52,8 @@ def check_draws_inf(draws):
 def serialize_floats(arr):
     return ["{}".format(x) for x in arr]
 
+
+def get_store_id(trn_data_path):
+    store = trn_data_path.split("/")[-1].split(".")[0]
+    store_id = "-".join(store.split("-")[:2])
+    return store_id

@@ -16,18 +16,20 @@ from utils import serialize_floats
 from experiments.exp_utils import get_simple_simulator, evaluate_policy
 from experiments.logger import Logger
 
+from utils import get_store_id
 
 def main(args):
+    store_id = get_store_id(cfg.vals["train_data"])
     hyp = {
         "learning timesteps": args.epochs,
         "episode length": cfg.vals["episode_len"],
         "n simulations": args.eval_eps,
-        "store": cfg.vals["train_data"]
+        "store": store_id
     }
 
     logger = Logger(hyp, "./results/", "off_policy_dqn")
 
-    with open("../data/random-buffer.p", 'rb') as f:
+    with open(f"../data/{store_id}-buffer-r.p", 'rb') as f:
         buffer_env = pickle.load(f)
 
     simulator = get_simple_simulator(cfg.vals)
