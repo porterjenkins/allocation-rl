@@ -180,7 +180,7 @@ class BCQ(object):
 
     def predict(self, observation, state=None, mask=None, deterministic=True):
         if isinstance(observation, dict):
-            observation = DQN._get_vec_observation(observation)[None]
+            observation = State.get_vec_observation(observation)[None]
 
         with self.sess.as_default():
             actions = self.select_action(observation, mask=mask)

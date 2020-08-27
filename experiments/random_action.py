@@ -6,6 +6,8 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from utils import get_store_id
+
 
 from envs.prior import Prior
 from envs.allocation_env import AllocationEnv
@@ -15,11 +17,13 @@ from stable_baselines.deepq.replay_buffer import ReplayBuffer
 from envs.state import State
 
 
-TIME_STEPS = cfg.vals["episode_len"]
+store_id = get_store_id(cfg.vals["train_data"])
+TIME_STEPS = 300
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 results = {'rewards': [0.0]}
 buffer = ReplayBuffer(size=50000)
+
 
 obs = env.reset()
 for i in range(TIME_STEPS):
@@ -56,8 +60,9 @@ for k, v in results.items():
     results[k] = serialize_floats(v)
 
 
-with open("output/random-policy-{}.json".format(cfg.vals['prj_name']), 'w') as f:
-    json.dump(results, f)
+#with open("output/random-policy-{}.json".format(cfg.vals['prj_name']), 'w') as f:
+#    json.dump(results, f)
 
-with open("../data/random-buffer.p", 'wb') as f:
+
+with open(f"../data/{store_id}-buffer-.p", 'wb') as f:
     pickle.dump(buffer, f)

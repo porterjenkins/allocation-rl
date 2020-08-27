@@ -138,6 +138,9 @@ def get_state(board_cfg, date, prev_sales):
     day = datetime.strptime(date, "%Y-%m-%d")
     day_vec = State.get_day_vec(day.weekday())
 
+    if prev_sales is not None:
+        prev_sales = prev_sales.sum()
+
     state = {
         "day_vec": day_vec,
         "board_config": board_cfg,
@@ -294,7 +297,7 @@ def main():
 
             reward, _ = get_reward(store, t_p_1, prod_dist, new_board_cfg, weights[store_id], prod_to_idx)
 
-            state = new_state
+            #state = new_state
             print(state["board_config"], reward)
 
             buffer.add(obs_t=State.get_vec_observation(state),

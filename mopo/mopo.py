@@ -51,7 +51,7 @@ class Mopo(object):
 
 
     def get_penalized_reward(self, r, lmbda):
-        variance = np.var(r)
+        variance = np.sqrt(np.var(r))
         mean = r.mean()
         return mean - lmbda*variance
 
@@ -94,10 +94,12 @@ class Mopo(object):
                                           obs_tp1=new_state,
                                           done=float(dones))
 
+                    state = new_state
 
 
-            # update policy with samples from D_env and D_model
-            self.policy.update_weights(self.buffer_model)
+
+                # update policy with samples from D_env and D_model
+                self.policy.update_weights(self.buffer_model)
         self.save_buffer()
 
 

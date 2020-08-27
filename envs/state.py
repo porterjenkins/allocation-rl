@@ -125,12 +125,12 @@ class State(object):
     def get_vec_observation(obs_dict):
         assert isinstance(obs_dict, dict)
         return np.array(np.concatenate(
-            ([obs_dict[key] for key in ['day_vec', 'prev_sales']]), axis=None))
+            ([obs_dict['day_vec'], obs_dict['board_config'], obs_dict["prev_sales"]]), axis=None))
 
     @staticmethod
     def get_board_config_from_vec(arr, n_regions, n_products):
-
-        prev_sales = arr[7:]
+        n = len(arr)
+        prev_sales = arr[7:(n-1)]
         board_cfg = np.where(prev_sales > 0.0, 1.0, 0.0)
         board_cfg = board_cfg.reshape((n_regions, n_products))
 

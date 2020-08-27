@@ -16,17 +16,19 @@ from offpolicy.bcq import BCQ
 from experiments.exp_utils import evaluate_policy, get_simple_simulator
 from experiments.logger import Logger
 
+from utils import get_store_id
+
 
 
 # modified from BCQ in PyTorch code: https://github.com/sfujim/BCQ
 
 def main(args):
-
+    store_id = get_store_id(cfg.vals["train_data"])
     hyp = {
 
         "episode length": cfg.vals["episode_len"],
         "n simulations": args.eval_eps,
-        "store": cfg.vals["train_data"],
+        "store": store_id,
         "eval frequency": args.eval_freq,
         "max timesteps": args.max_timesteps,
         "batch size": args.batch_size,
@@ -83,8 +85,8 @@ def main(args):
                          clip_norm=bool(args.clip_norm), vae_lr=args.vae_lr)
 
         # Load buffer
-        with open(f"../data/store-2-buffer.p", 'rb') as f:
-            replay_buffer  = pickle.load(f)
+        with open(f"../data/{store_id}-buffer-r.p", 'rb') as f:
+            replay_buffer = pickle.load(f)
 
         evaluations = []
 

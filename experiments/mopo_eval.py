@@ -6,6 +6,7 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 
+from utils import get_store_id
 from envs.prior import Prior
 from envs.allocation_env import AllocationEnv
 import config.config as cfg
@@ -19,16 +20,18 @@ from experiments.exp_utils import get_simple_simulator, evaluate_policy
 from experiments.logger import Logger
 
 def main(args):
-
+    store_id = get_store_id(cfg.vals["train_data"])
     hyp = {
             "epochs": args.epochs,
+            "rollout batch size": args.rollout_batch_size,
+            "parameter updates": args.epochs * args.rollout_batch_size,
             "rollouts": args.rollouts,
             "lambda": args.lmbda,
             "batch size": args.batch_size,
-            "poster samples": args.posterior_samples,
+            "posterior samples": args.posterior_samples,
             "episode length": cfg.vals["episode_len"],
             "n simulations": args.eval_eps,
-            "store": cfg.vals["train_data"]
+            "store": store_id
            }
 
 
@@ -46,12 +49,12 @@ def main(args):
 
     mopo_dqn = Mopo(policy=policy,
                     env_model=env_model,
-                    rollout_batch_size=10,
+                    rollout_batch_size=args.rollout_batch_size,
                     epochs=args.epochs,
                     rollout=args.rollouts,
                     n_actions = env_model.n_actions,
                     lmbda=args.lmbda,
-                    buffer_path="../data/store-2-buffer.p"
+                    buffer_path=f"../data/{store_id}-buffer-r.p"
                     #buffer_path=None
 
         )
@@ -77,6 +80,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--rollouts', type=int, default=30)
+    parser.add_argument('--rollout-batch-size', type=int, default=10)
     parser.add_argument('--lmbda', type=float, default=1e-4)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--eval-eps', type=int, default=10)

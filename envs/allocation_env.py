@@ -60,7 +60,7 @@ class AllocationEnv(gym.Env):
         self.observation_space = spaces.Dict({"day_vec": gym.spaces.MultiBinary(7),
                                               "board_config": spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products),
                                                           dtype=np.int8),
-                                              "prev_sales": spaces.Box(low=0, high=np.inf, shape=(self.n_regions, self.n_products),
+                                              "prev_sales": spaces.Box(low=0, high=np.inf, shape=(1, 1),
                                                           dtype=np.float32)}
                                               )
         self.action_map = self.build_action_map()
