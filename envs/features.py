@@ -143,7 +143,7 @@ class Features(object):
           [4*4],
           [4*4] ]
         '''
-        return {"day_vec": state.day_vec, "board_config": state.board_config, "prev_sales": state.prev_sales}
+        return {"day_vec": state.day_vec, "board_config": state.board_config, "prev_sales": state.prev_sales.sum()}
 
 
 if __name__ == "__main__":
