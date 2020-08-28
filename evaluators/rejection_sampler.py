@@ -45,7 +45,15 @@ class PSRS(object):
 
         for i in range(len(buffer.storage)):
             s, a, r, s_prime, _ = buffer.storage[i]
-            s_key = self.stringify(s)
+
+            if not queue.is_in(s):
+                queue.add(s)
+
+            queue[s].append((s, a, r, s_prime))
+
+        queue.permute()
+
+        return queue
 
 
 
