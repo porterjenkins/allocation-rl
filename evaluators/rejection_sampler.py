@@ -4,7 +4,9 @@ import random
 import torch
 
 from evaluators.eval_queue import EvalQueue
-from evaluators.mlp_env_model import MLPClassifer
+from mopo.mopo import  Mopo
+from policies.deepq.policies import MlpPolicy
+from policies.deepq.dqn import DQN
 
 def get_buffer(fpath):
     with open(fpath, 'rb') as f:
@@ -131,6 +133,8 @@ if __name__ == "__main__":
     A = 361
     buffer_path = "../data/store-2-buffer-r.p"
     model_path = "../data/env_policy.pt"
+
+    mopo_dqn = DQN.load(f"../experiments/models/mopo-policy.p")
 
     policy = Policy(A, buffer_path, model_path)
 
