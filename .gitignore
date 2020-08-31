@@ -12,7 +12,7 @@ data/*.xlsx
 data/*.json
 *.ipynb
 data/.ipynb_checkpoints
-
+*.txt
 experiments/output
 experiments/results
 experiments/models
