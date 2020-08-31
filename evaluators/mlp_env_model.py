@@ -25,13 +25,16 @@ def get_train_data(buffer_path, as_tensor=False, n_actions=None):
     n_samples = len(buffer.storage)
 
     X = np.zeros((n_samples, state_space))
-    y = np.zeros((n_samples, n_actions))
+    #y = np.zeros(n_samples, n_actions)
+
+    y = np.zeros(n_samples)
 
     for i in range(len(buffer.storage)):
         s, a, r, s_prime, _ = buffer.storage[i]
 
         X[i, :] = s
-        y[i, a] = 1.0
+        #y[i, a] = 1.0
+        y[i] = a
 
 
 
@@ -39,7 +42,7 @@ def get_train_data(buffer_path, as_tensor=False, n_actions=None):
 
     if as_tensor:
         X = torch.from_numpy(X.astype(np.float32))
-        y = torch.from_numpy(y.astype(np.float32))
+        y = torch.from_numpy(y.astype(np.int))
 
     return X, y
 
@@ -83,7 +86,7 @@ class MLPClassifer(nn.Module):
 
 def main(model, dataloader, hyp, fname):
 
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=hyp["lr"])
 
     for epoch in range(hyp["epochs"]):
