@@ -4,7 +4,7 @@ resc
 figs
 params.json
 *.trace
-
+*.pt
 *.pyc
 *.p
 data/*.csv
