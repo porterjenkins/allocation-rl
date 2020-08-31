@@ -1,10 +1,10 @@
 import pickle
 import numpy as np
 import random
+import torch
 
 from evaluators.eval_queue import EvalQueue
-
-from sklearn.neural_network import MLPClassifier
+from evaluators.mlp_env_model import MLPClassifer
 
 def get_buffer(fpath):
     with open(fpath, 'rb') as f:
@@ -13,45 +13,23 @@ def get_buffer(fpath):
     return buffer
 
 
+
 class Policy(object):
-    def __init__(self, n_actions, buffer_path):
+    def __init__(self, n_actions, buffer_path, model_path):
         self.buffer_path = buffer_path
         self.n_actions = n_actions
-        self.buffer = get_buffer(buffer_path)
-        self.neural_net = MLPClassifier(hidden_layer_sizes=(256, 64))
-
-        self.X_train, self.y_train = self.get_train_data()
+        self.neural_net = self.load_policy(model_path)
+        self.neural_net.eval()
 
 
-    def get_train_data(self):
+    def load_policy(self, fpath):
+        model = torch.load(fpath)
+        return model
 
-        s, a, r, s_prime, _ = self.buffer.storage[0]
-        state_space = len(s)
-        n_samples = len(self.buffer.storage)
-
-        X = np.zeros((n_samples, state_space))
-        y = np.zeros((n_samples, 1))
-
-        for i in range(len(self.buffer.storage)):
-            s, a, r, s_prime, _ = self.buffer.storage[i]
-
-            X[i, :] = s
-            y[i, 0] = a
-
-        return X, y
-
-    def train(self):
-        self.neural_net.fit(self.X_train, self.y_train)
-
-
-    def predict(self, state):
-
-        a_hat = self.neural_net.predict(state.reshape(1, -1))
-
-        return a_hat
 
     def predict_proba(self, state):
-        a_hat = self.neural_net.predict_proba(state.reshape(1, -1))[0]
+        state = torch.from_numpy(state.astype(np.float32))
+        a_hat = self.neural_net.forward(state).data.numpy()
         return a_hat
 
 
@@ -152,12 +130,13 @@ class PSRS(object):
 if __name__ == "__main__":
     A = 361
     buffer_path = "../data/store-2-buffer-r.p"
+    model_path = "../data/env_policy.pt"
 
-    policy = Policy(A, buffer_path)
-    policy.train()
+    policy = Policy(A, buffer_path, model_path)
 
-    env_policy = Policy(A, buffer_path)
-    env_policy.train()
+
+    env_policy = Policy(A, buffer_path, model_path)
+
 
     psrs = PSRS(buffer_path, policy, env_policy, A, 10)
     psrs.evaluate()
