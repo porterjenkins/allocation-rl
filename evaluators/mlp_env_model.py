@@ -71,6 +71,7 @@ class MLPClassifer(nn.Module):
         self.fc1 = nn.Linear(features, h_1)
         self.fc2 = nn.Linear(h_1, h_2)
         self.fc3 = nn.Linear(h_2, n_actions)
+        self.softmax = nn.Softmax()
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -80,7 +81,7 @@ class MLPClassifer(nn.Module):
         if self.training:
             return output
         else:
-            return nn.Softmax(output)
+            return self.softmax(output)
 
 
 
