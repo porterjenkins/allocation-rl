@@ -2,17 +2,57 @@ import pickle
 import numpy as np
 import random
 
-from evaluators.queue import Queue
+from evaluators.eval_queue import EvalQueue
+
+from sklearn.neural_network import MLPClassifier
+
+def get_buffer(fpath):
+    with open(fpath, 'rb') as f:
+        buffer = pickle.load(f)
+
+    return buffer
+
 
 class Policy(object):
-    def __init__(self, n_actions):
+    def __init__(self, n_actions, buffer_path):
+        self.buffer_path = buffer_path
         self.n_actions = n_actions
+        self.buffer = get_buffer(buffer_path)
+        self.neural_net = MLPClassifier(hidden_layer_sizes=(256, 64))
+
+        self.X_train, self.y_train = self.get_train_data()
+
+
+    def get_train_data(self):
+
+        s, a, r, s_prime, _ = self.buffer.storage[0]
+        state_space = len(s)
+        n_samples = len(self.buffer.storage)
+
+        X = np.zeros((n_samples, state_space))
+        y = np.zeros((n_samples, 1))
+
+        for i in range(len(self.buffer.storage)):
+            s, a, r, s_prime, _ = self.buffer.storage[i]
+
+            X[i, :] = s
+            y[i, 0] = a
+
+        return X, y
+
+    def train(self):
+        self.neural_net.fit(self.X_train, self.y_train)
+
 
     def predict(self, state):
 
-        p = np.ones(self.n_actions) / self.n_actions
-        return p
+        a_hat = self.neural_net.predict(state.reshape(1, -1))
 
+        return a_hat
+
+    def predict_proba(self, state):
+        a_hat = self.neural_net.predict_proba(state.reshape(1, -1))[0]
+        return a_hat
 
 
 
@@ -28,22 +68,17 @@ class PSRS(object):
         self.n_actions = n_actions
         self.n_episodes = n_episodes
 
-        self.buffer = self.get_buffer(self.buffer_path)
+        self.buffer = get_buffer(self.buffer_path)
         self.queue = self.build_queue(self.buffer)
 
 
 
-    def get_buffer(self, fpath):
 
-        with open(fpath, 'rb') as f:
-            buffer = pickle.load(f)
-
-        return buffer
 
 
     def build_queue(self, buffer):
 
-        queue = Queue()
+        queue = EvalQueue()
 
 
         for i in range(len(buffer.storage)):
@@ -60,8 +95,8 @@ class PSRS(object):
 
     def get_m(self, state):
 
-        prob_policy = self.policy.predict(state)
-        prob_env = self.env_policy.predict(state)
+        prob_policy = self.policy.predict_proba(state)
+        prob_env = self.env_policy.predict_proba(state)
 
         M = -1
 
@@ -72,7 +107,7 @@ class PSRS(object):
             if M_prime > M:
                 M = M_prime
 
-        return np.exp(M)
+        return M
 
     def evaluate(self):
 
@@ -94,8 +129,8 @@ class PSRS(object):
 
                 alpha = random.random()
 
-                prob_policy = self.policy.predict(state)[a]
-                prob_env = self.env_policy.predict(state)[a]
+                prob_policy = self.policy.predict_proba(state)[a]
+                prob_env = self.env_policy.predict_proba(state)[a]
 
                 rejection_tol = (1/M) * prob_policy/prob_env
 
@@ -115,9 +150,14 @@ class PSRS(object):
 
 
 if __name__ == "__main__":
-    A  = 361
-    policy = Policy(n_actions=A)
-    env_policy = Policy(n_actions=A)
+    A = 361
+    buffer_path = "../data/store-2-buffer-r.p"
 
-    psrs = PSRS("../data/random-buffer.p", policy, env_policy, A, 10)
+    policy = Policy(A, buffer_path)
+    policy.train()
+
+    env_policy = Policy(A, buffer_path)
+    env_policy.train()
+
+    psrs = PSRS(buffer_path, policy, env_policy, A, 10)
     psrs.evaluate()

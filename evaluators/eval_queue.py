@@ -1,6 +1,6 @@
 import numpy as np
 
-class Queue(object):
+class EvalQueue(object):
 
     def __init__(self):
         self.storage = {}
