@@ -5,6 +5,7 @@ import numpy as np
 import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
+import pickle
 
 from utils import get_store_id
 from envs.prior import Prior
@@ -61,6 +62,7 @@ def main(args):
 
 
     mopo_dqn.learn()
+    mopo_dqn.policy.save(f"./models/{args.file_name}")
 
 
     simulator = get_simple_simulator(cfg.vals)
@@ -75,6 +77,7 @@ def main(args):
     logger.write()
 
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -85,7 +88,9 @@ if __name__ == "__main__":
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--eval-eps', type=int, default=10)
     parser.add_argument('--posterior-samples', type=int, default=25)
+    parser.add_argument('--file-name', type=str, default="mopo-policy.p")
 
     args = parser.parse_args()
 
     main(args)
+

@@ -13,7 +13,18 @@ from envs.state import State
 
 class Mopo(object):
 
-    def __init__(self, policy, env_model, rollout_batch_size, buffer_path, epochs, rollout, n_actions, lmbda, buffer_size=50000):
+    def __init__(self,
+                 policy,
+                 env_model=None,
+                 rollout_batch_size=None,
+                 buffer_path=None,
+                 epochs=None,
+                 rollout=None,
+                 n_actions=None,
+                 lmbda=None,
+                 buffer_size=50000):
+
+
         self.epochs = epochs
         self.env_model = env_model
         self.rollout_batch_size = rollout_batch_size
