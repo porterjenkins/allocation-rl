@@ -152,4 +152,6 @@ if __name__ == "__main__":
 
 
     psrs = PSRS(buffer_path, mopo_dqn, env_policy, A, cfg.vals["n_regions"], cfg.vals["n_products"], 10)
-    psrs.evaluate()
+    r = psrs.evaluate()
+
+    print(r)
