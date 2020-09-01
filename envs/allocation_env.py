@@ -19,6 +19,7 @@ import datetime
 from envs.models import LinearModel, HierarchicalModel
 import pickle
 import matplotlib.pyplot as plt
+from utils import get_store_id
 
 class AllocationEnv(gym.Env):
     """Environment model for training Reinforcement Learning agent"""
@@ -60,10 +61,24 @@ class AllocationEnv(gym.Env):
         self.observation_space = spaces.Dict({"day_vec": gym.spaces.MultiBinary(7),
                                               "board_config": spaces.Box(low=-2, high=1, shape=(self.n_regions, self.n_products),
                                                           dtype=np.int8),
-                                              "prev_sales": spaces.Box(low=0, high=np.inf, shape=(1, 1),
-                                                          dtype=np.float32)}
+                                              "prev_sales": spaces.Box(low=0, high=5, shape=(1, 6), dtype=np.int8)}
                                               )
         self.action_map = self.build_action_map()
+        self.sales_quantiles = self.get_sales_quantiles(get_store_id(config["train_data"]))
+
+    def get_sales_quantiles(self, store_id):
+
+        q = {}
+        fpath = f"../data/{store_id}-quantiles.txt"
+
+        with open(fpath, "r") as f:
+            for i, line in enumerate(f):
+
+                q[i] = float(line.strip())
+
+        return q
+
+
 
     def set_state(self, input_state):
         self.state = copy.copy(input_state)
@@ -213,7 +228,7 @@ class AllocationEnv(gym.Env):
             return False
 
     def _get_state(self):
-        return Features.featurize_state_saperate(self.state)
+        return Features.featurize_state_saperate(self.state, self.sales_quantiles)
 
     def _get_cost(self):
         is_region_allocated = np.where(self.state.board_config == 1)[0]

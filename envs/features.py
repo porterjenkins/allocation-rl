@@ -134,7 +134,7 @@ class Features(object):
         return features
 
     @classmethod
-    def featurize_state_saperate(cls, state):
+    def featurize_state_saperate(cls, state, quantiles=None):
         '''
         get the state features into an array list
         :param state:
@@ -143,7 +143,22 @@ class Features(object):
           [4*4],
           [4*4] ]
         '''
-        return {"day_vec": state.day_vec, "board_config": state.board_config, "prev_sales": state.prev_sales.sum()}
+
+        sales_bin = np.zeros(6, dtype=np.int8)
+        prev_sales = state.prev_sales.sum()
+
+        for idx, bin in quantiles.items():
+
+            if prev_sales < bin:
+                sales_bin[idx] = 1
+                break
+
+        if sales_bin.sum() == 0:
+            sales_bin[5] = 1
+
+        assert sales_bin.sum() == 1
+
+        return {"day_vec": state.day_vec, "board_config": state.board_config, "prev_sales": sales_bin}
 
 
 if __name__ == "__main__":

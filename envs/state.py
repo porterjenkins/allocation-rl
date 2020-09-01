@@ -130,8 +130,8 @@ class State(object):
     @staticmethod
     def get_board_config_from_vec(arr, n_regions, n_products):
         n = len(arr)
-        prev_sales = arr[7:(n-1)]
-        board_cfg = np.where(prev_sales > 0.0, 1.0, 0.0)
+        placements = arr[7:(n-6)]
+        board_cfg = np.where(placements > 0.0, 1.0, 0.0)
         board_cfg = board_cfg.reshape((n_regions, n_products))
 
 
