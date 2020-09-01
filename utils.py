@@ -57,3 +57,11 @@ def get_store_id(trn_data_path):
     store = trn_data_path.split("/")[-1].split(".")[0]
     store_id = "-".join(store.split("-")[:2])
     return store_id
+
+
+def get_reward(r):
+
+    if isinstance(r, np.ndarray):
+        return r[0]
+    else:
+        return r
