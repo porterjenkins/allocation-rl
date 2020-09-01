@@ -58,6 +58,8 @@ class PSRS(object):
         self.queue = self.build_queue(self.buffer)
 
 
+    def reduced_state(self, s):
+        return s[7:]
 
 
 
@@ -153,5 +155,7 @@ if __name__ == "__main__":
 
     psrs = PSRS(buffer_path, mopo_dqn, env_policy, A, cfg.vals["n_regions"], cfg.vals["n_products"], 10)
     r = psrs.evaluate()
+    mean = np.mean(r)
+    sigma = np.std(r)
 
-    print(r)
+    print(mean, sigma)

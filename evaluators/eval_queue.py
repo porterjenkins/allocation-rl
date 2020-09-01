@@ -28,17 +28,23 @@ class EvalQueue(object):
 
 
     def permute(self):
+        items = []
         for k, v in self.storage.items():
 
             n_items = len(v)
+            items.append(n_items)
             ran_idx = np.random.permutation(range(n_items))
             randomized = []
+
+
 
             for i in range(n_items):
                 idx = ran_idx[i]
                 randomized.append(v[idx])
 
+
             self.storage[k] = randomized
+        print("Average queue length: {:.2f}".format(np.mean(items)))
 
 
 

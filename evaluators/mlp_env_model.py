@@ -119,8 +119,8 @@ if __name__ == "__main__":
     mlp = MLPClassifer(n_actions=A, features=X.shape[1], h_1=1024, h_2=512)
 
     hyp = {
-        "epochs": 25,
-        "lr": 1e-4,
+        "epochs": 100,
+        "lr": 5e-3,
         "batch_size": 32
     }
 
