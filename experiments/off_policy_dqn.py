@@ -29,8 +29,8 @@ def main(args):
 
     logger = Logger(hyp, "./results/", "off_policy_dqn")
 
-    with open(f"../data/{store_id}-buffer-r.p", 'rb') as f:
-        buffer_env = strip_reward_array(pickle.load(f))
+    with open(f"../data/{store_id}-buffer-d-trn.p", 'rb') as f:
+        buffer_env = pickle.load(f)
 
     simulator = get_simple_simulator(cfg.vals)
     model = DQN(MlpPolicy, simulator, verbose=2)

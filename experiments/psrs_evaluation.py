@@ -14,9 +14,9 @@ from offpolicy.bcq import BCQ
 
 
 def eval_dqn(policy, args):
+    store_id = get_store_id(cfg.vals["train_data"])
     action_space = get_action_space(cfg.vals["n_regions"], cfg.vals["n_products"])
     model_path = f"../data/{store_id}-env_policy.pt"
-    store_id = get_store_id(cfg.vals["train_data"])
     buffer_path = f"../data/{store_id}-buffer-d-trn.p"
 
     env_policy = MLPPolicy(action_space, buffer_path, model_path)
@@ -30,12 +30,12 @@ def eval_dqn(policy, args):
 
 
 def eval_off_policy_dqn(args):
-
+    store_id = get_store_id(cfg.vals["train_data"])
     policy = DQN.load(f"../experiments/models/{store_id}-off-policy-dqn.p")
     eval_dqn(policy, args)
 
 def eval_mopo_dqn(args):
-
+    store_id = get_store_id(cfg.vals["train_data"])
     policy = DQN.load(f"../experiments/models/{store_id}-mopo-policy.p")
     eval_dqn(policy, args)
 
