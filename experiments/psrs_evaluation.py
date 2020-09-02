@@ -7,13 +7,11 @@ import argparse
 
 from evaluators.rejection_sampler import PSRS, MLPPolicy, BCQPolicy
 from evaluators.mlp_env_model import MLPClassifer
-from utils import get_store_id
+from utils import get_store_id, get_action_space
 
 from policies.deepq.dqn import DQN
 from offpolicy.bcq import BCQ
 
-def get_action_space(n_regions, n_products):
-    return (n_regions * n_products)*2 + 1
 
 def eval_dqn(policy, args):
     action_space = get_action_space(cfg.vals["n_regions"], cfg.vals["n_products"])
