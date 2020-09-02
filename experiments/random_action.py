@@ -18,7 +18,7 @@ from envs.state import State
 
 
 store_id = get_store_id(cfg.vals["train_data"])
-TIME_STEPS = 300
+TIME_STEPS = 5000
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 results = {'rewards': [0.0]}
@@ -28,8 +28,12 @@ buffer = ReplayBuffer(size=50000)
 obs = env.reset()
 for i in range(TIME_STEPS):
     action = env.action_space.sample()
-    action = AllocationEnv.check_action(obs['board_config'], action)
-    new_obs, rew, dones, info = env.step(action)
+    proposed_action = AllocationEnv.check_action(obs['board_config'], action)
+    new_obs, rew, dones, info = env.step(proposed_action)
+
+    if rew == -1:
+        action = 0
+
     print("Timestep: {}".format(i))
     print("action: {} - reward: {}".format(action, rew))
     print(obs['day_vec'])
@@ -64,5 +68,5 @@ for k, v in results.items():
 #    json.dump(results, f)
 
 
-with open(f"../data/{store_id}-buffer-.p", 'wb') as f:
+with open(f"../data/{store_id}-buffer-r.p", 'wb') as f:
     pickle.dump(buffer, f)
