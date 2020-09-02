@@ -1,6 +1,7 @@
 import numpy as np
 import datetime
 
+from stable_baselines.deepq.replay_buffer import ReplayBuffer
 
 def check_pos_def(x):
     is_pos_def = np.all(np.linalg.eigvals(x) >= 0)
@@ -65,3 +66,19 @@ def get_reward(r):
         return r[0]
     else:
         return r
+
+def strip_reward_array(buffer):
+
+    fresh_buffer = ReplayBuffer(len(buffer))
+
+
+    print("Copying environment buffer: ")
+    for i in range(len(buffer)):
+        obs_t, action, reward, obs_tp1, done = buffer._storage[i]
+        fresh_buffer.add(obs_t, action, reward[0], obs_tp1, done)
+
+    return fresh_buffer
+
+
+def get_action_space(n_regions, n_products):
+    return (n_regions * n_products)*2 + 1
