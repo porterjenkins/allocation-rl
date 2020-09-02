@@ -124,8 +124,8 @@ if __name__ == "__main__":
     buffer_path = f"../data/{store_id}-buffer-d-trn.p"
     action_space = get_action_space(cfg.vals["n_regions"], cfg.vals["n_products"])
 
-    
-    X, y = get_train_data(buffer_path, as_tensor=True, n_actions=A)
+
+    X, y = get_train_data(buffer_path, as_tensor=True, n_actions=action_space)
     train = EnvDataset(X, y)
 
     mlp = MLPClassifer(n_actions=action_space, features=X.shape[1], h_1=1024, h_2=512)
