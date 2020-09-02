@@ -1,3 +1,6 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import torch
 import numpy as np
 import pickle
@@ -8,6 +11,9 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import Dataset
 from sklearn.preprocessing import OneHotEncoder
+
+from utils import get_store_id, get_action_space
+import config.config as cfg
 
 def get_buffer(fpath):
     with open(fpath, 'rb') as f:
@@ -34,6 +40,10 @@ def get_train_data(buffer_path, as_tensor=False, n_actions=None):
 
         X[i, :] = s
         #y[i, a] = 1.0
+
+        if a == -1:
+            a = 0
+
         y[i] = a
 
 
@@ -110,13 +120,15 @@ def main(model, dataloader, hyp, fname):
 
 
 if __name__ == "__main__":
-    buffer_path = "../data/store-2-buffer-r.p"
-    A = 361
+    store_id = get_store_id(cfg.vals["train_data"])
+    buffer_path = f"../data/{store_id}-buffer-d-trn.p"
+    action_space = get_action_space(cfg.vals["n_regions"], cfg.vals["n_products"])
 
+    
     X, y = get_train_data(buffer_path, as_tensor=True, n_actions=A)
     train = EnvDataset(X, y)
 
-    mlp = MLPClassifer(n_actions=A, features=X.shape[1], h_1=1024, h_2=512)
+    mlp = MLPClassifer(n_actions=action_space, features=X.shape[1], h_1=1024, h_2=512)
 
     hyp = {
         "epochs": 100,
@@ -124,6 +136,5 @@ if __name__ == "__main__":
         "batch_size": 32
     }
 
-
     dataset = DataLoader(train, batch_size=hyp["batch_size"])
-    main(mlp, dataset, hyp, "../data/env_policy.pt")
+    main(mlp, dataset, hyp, f"../data/{store_id}-env_policy.pt")

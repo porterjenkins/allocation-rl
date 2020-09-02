@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pickle
 import numpy as np
 import random
@@ -9,6 +13,7 @@ from evaluators.eval_queue import EvalQueue
 from evaluators.mlp_env_model import MLPClassifer
 
 from policies.deepq.dqn import DQN
+from offpolicy.bcq import BCQ
 from envs.allocation_env import AllocationEnv
 from envs.state import State
 
@@ -20,7 +25,7 @@ def get_buffer(fpath):
 
 
 
-class Policy(object):
+class MLPPolicy(object):
     def __init__(self, n_actions, buffer_path, model_path):
         self.buffer_path = buffer_path
         self.n_actions = n_actions
@@ -39,6 +44,18 @@ class Policy(object):
         return a_hat
 
 
+class BCQPolicy(object):
+
+    def __init__(self, bcq):
+        self.bcq = bcq
+
+    def proba_step(self, state, mask):
+
+        actions = self.bcq.predict_proba(state, mask)
+
+        return actions
+
+
 
 class PSRS(object):
 
@@ -55,12 +72,11 @@ class PSRS(object):
         self.n_episodes = n_episodes
 
         self.buffer = get_buffer(self.buffer_path)
-        self.queue = self.build_queue(self.buffer)
+        self.queue = None
 
 
     def reduced_state(self, s):
         return s[7:]
-
 
 
 
@@ -71,6 +87,9 @@ class PSRS(object):
 
         for i in range(len(buffer.storage)):
             s, a, r, s_prime, _ = buffer.storage[i]
+
+            if a == -1:
+                a = 0
 
             if not queue.is_in(s):
                 queue.add(s)
@@ -103,9 +122,14 @@ class PSRS(object):
         rewards = []
         for i in range(self.n_episodes):
 
+            self.queue = self.build_queue(self.buffer)
+
             r_i = 0
             state, _, _, _, _ = self.buffer.sample(batch_size=1)
             state = state[0]
+
+            iter = 0
+            cntr = 0
 
             while True:
                 board_cfg = State.get_board_config_from_vec(state,
@@ -115,10 +139,12 @@ class PSRS(object):
                 feasible_actions = AllocationEnv.get_feasible_actions(board_cfg)
                 action_mask = AllocationEnv.get_action_mask(feasible_actions, self.n_actions)
 
-                M = self.get_m(state, action_mask)
-
+                #M = self.get_m(state, action_mask)
+                M = 1
                 try:
                     _, a, r, s_prime = self.queue[state].pop()
+                    #_, a, r, s_prime = self.queue[state][-1]
+
                 except IndexError:
                     break
 
@@ -129,33 +155,40 @@ class PSRS(object):
 
                 rejection_tol = (1/M) * prob_policy/prob_env
 
+                iter += 1
+                print(f"eps: {i+1} - iter:{iter} - success: {cntr}")
+
                 if alpha > rejection_tol:
                     continue
                 else:
+                    #self.queue[state].pop()
+
                     r_i += r
                     state = s_prime
+                    cntr += 1
 
-            rewards.append(r_i)
+            if r_i > 0:
+                rewards.append(r_i)
 
 
         return rewards
 
 
 
-
-
 if __name__ == "__main__":
     A = 361
-    buffer_path = "../data/store-2-buffer-r.p"
-    model_path = "../data/env_policy.pt"
+    buffer_path = "../data/store-2-buffer-d-trn.p"
+    model_path = "../data/store-2-env_policy.pt"
 
-    mopo_dqn = DQN.load(f"../experiments/models/mopo-policy.p")
-    env_policy = Policy(A, buffer_path, model_path)
+    mopo_dqn = DQN.load(f"../experiments/models/off-policy-dqn.p")
+
+
+    env_policy = MLPPolicy(A, buffer_path, model_path)
 
 
     psrs = PSRS(buffer_path, mopo_dqn, env_policy, A, cfg.vals["n_regions"], cfg.vals["n_products"], 10)
     r = psrs.evaluate()
     mean = np.mean(r)
     sigma = np.std(r)
-
+    print(r)
     print(mean, sigma)
