@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import pickle
+import random
 
 from stable_baselines.deepq.replay_buffer import ReplayBuffer
 import config.config as cfg
@@ -22,7 +23,8 @@ class Mopo(object):
                  rollout=None,
                  n_actions=None,
                  lmbda=None,
-                 buffer_size=50000):
+                 buffer_size=50000,
+                 eps=.3):
 
 
         self.epochs = epochs
@@ -33,10 +35,12 @@ class Mopo(object):
         self.policy = policy
         self.n_actions = n_actions
         self.lmbda = lmbda
+        self.eps = eps
         self.buffer_env, self.buffer_model = self.init_buffer(self.buffer_path, buffer_size)
         self.n_regions = env_model.n_regions
         self.n_products = env_model.n_products
         self.env_model.reset()
+
 
 
     def init_buffer(self, fpath=None, buffer_size=None):
@@ -89,7 +93,12 @@ class Mopo(object):
                     action_mask = AllocationEnv.get_action_mask(feasible_actions, self.n_actions)
 
                     # sample action a_j ~ pi(s_j)
-                    action, _states = self.policy.predict(state.reshape(1, -1), mask=action_mask)
+                    alpha = random.random()
+
+                    if alpha < self.eps:
+                        action = self.env_model.action_space.sample()
+                    else:
+                        action, _states = self.policy.predict(state.reshape(1, -1), mask=action_mask)
 
                     # compute dynamics from env model
                     new_state, r_hat, dones, info = self.env_model.step(action)
