@@ -38,14 +38,6 @@ def main(args):
     model.save(f"./models/{store_id}-{args.file_name}")
 
 
-    reward, sigma = evaluate_policy(model, simulator, args.eval_eps)
-
-    logger.set_result(
-        {
-            "reward": reward,
-            "std": sigma
-        }
-    )
     logger.write()
 
 
@@ -53,7 +45,6 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=1000)
-    parser.add_argument('--eval_eps', type=int, default=10)
     parser.add_argument('--file-name', type=str, default="off-policy-dqn.p")
     args = parser.parse_args()
 
