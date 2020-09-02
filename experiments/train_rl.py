@@ -29,16 +29,22 @@ n_actions = env.n_actions
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 model = DQN(MlpPolicy, env, verbose=2, learning_starts=LEARNING_START, gamma=.2,
-            exploration_fraction=0.35, exploration_final_eps=0.05)
+            exploration_fraction=0.35, exploration_final_eps=0.2)
 model.learn(total_timesteps=TIME_STEPS, learning_curve=False, test_t=TEST_T)
 
 
-obs = env.reset()
+with open(f"../data/{store_id}-buffer-d-trn.p", 'wb') as f:
+    pickle.dump(model.replay_buffer, f)
+
+
 results = {'rewards': [0.0]}
 buffer = ReplayBuffer(size=50000)
 
 
 for j in range(100):
+
+    obs = env.reset()
+
     for i in range(TEST_T):
         feasible_actions = AllocationEnv.get_feasible_actions(obs["board_config"])
         action_mask = AllocationEnv.get_action_mask(feasible_actions, n_actions)
@@ -52,7 +58,7 @@ for j in range(100):
         # add (s, a, r, s') to buffer
         buffer.add(obs_t=State.get_vec_observation(obs),
                    action=action,
-                   reward=r,
+                   reward=r[0],
                    obs_tp1=State.get_vec_observation(new_obs),
                    done=float(dones))
 
@@ -60,21 +66,10 @@ for j in range(100):
 
 
 
-x = np.arange(TEST_T+1)
-plt.plot(x, results['rewards'])
-plt.xlabel("Timestep (t)")
-plt.ylabel("Cumulative Reward (test)")
-plt.savefig("figs/rl-test-{}.png".format(cfg.vals['prj_name']))
-
-
-for k, v in results.items():
-    results[k] = serialize_floats(v)
-
-
 with open("output/rl-test-{}.json".format(cfg.vals['prj_name']), 'w') as f:
     json.dump(results, f)
 
 
 
-with open(f"../data/{store_id}-buffer-r.p", 'wb') as f:
+with open(f"../data/{store_id}-buffer-d.p", 'wb') as f:
     pickle.dump(buffer, f)
