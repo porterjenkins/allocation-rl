@@ -20,24 +20,26 @@ from mopo.mopo import Mopo
 from experiments.exp_utils import get_simple_simulator, evaluate_policy
 from experiments.logger import Logger
 
+
 def main(args):
+
     store_id = get_store_id(cfg.vals["train_data"])
     hyp = {
-            "epochs": args.epochs,
-            "rollout batch size": args.rollout_batch_size,
-            "parameter updates": args.epochs * args.rollout_batch_size,
-            "rollouts": args.rollouts,
-            "lambda": args.lmbda,
-            "batch size": args.batch_size,
-            "posterior samples": args.posterior_samples,
-            "episode length": cfg.vals["episode_len"],
-            "n simulations": args.eval_eps,
-            "store": store_id
-           }
-
+        "epochs": args.epochs,
+        "rollout batch size": args.rollout_batch_size,
+        "parameter updates": args.epochs * args.rollout_batch_size,
+        "rollouts": args.rollouts,
+        "lambda": args.lmbda,
+        "batch size": args.batch_size,
+        "posterior samples": args.posterior_samples,
+        "episode length": cfg.vals["episode_len"],
+        "n simulations": args.eval_eps,
+        "store": store_id,
+        "eps": args.eps
+    }
 
     logger = Logger(hyp, "./results/", "pc_mopo")
-
+    logger.write()
 
     prior = Prior(config=cfg.vals)
     env_model = AllocationEnv(config=cfg.vals,
@@ -53,29 +55,16 @@ def main(args):
                     rollout_batch_size=args.rollout_batch_size,
                     epochs=args.epochs,
                     rollout=args.rollouts,
-                    n_actions = env_model.n_actions,
+                    n_actions=env_model.n_actions,
                     lmbda=args.lmbda,
-                    buffer_path=f"../data/{store_id}-buffer-d-trn.p"
-                    #buffer_path=None
+                    buffer_path=f"../data/{store_id}-buffer-d-trn.p",
+                    # buffer_path=None
+                    eps=args.eps
 
-        )
-
+                    )
 
     mopo_dqn.learn()
     mopo_dqn.policy.save(f"./models/{store_id}-{args.file_name}")
-
-
-    simulator = get_simple_simulator(cfg.vals)
-    reward, sigma = evaluate_policy(mopo_dqn.policy, simulator, args.eval_eps)
-
-    logger.set_result(
-                        {
-                        "reward": reward,
-                        "std": sigma
-                        }
-                    )
-    logger.write()
-
 
 
 if __name__ == "__main__":
@@ -93,4 +82,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args)
-

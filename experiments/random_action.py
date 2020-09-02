@@ -18,7 +18,7 @@ from envs.state import State
 
 
 store_id = get_store_id(cfg.vals["train_data"])
-TIME_STEPS = 5000
+TIME_STEPS = cfg.vals["episode_len"]
 prior = Prior(config=cfg.vals)
 env = AllocationEnv(config=cfg.vals, prior=prior, load_model=True)
 results = {'rewards': [0.0]}
@@ -68,5 +68,5 @@ for k, v in results.items():
 #    json.dump(results, f)
 
 
-with open(f"../data/{store_id}-buffer-r.p", 'wb') as f:
-    pickle.dump(buffer, f)
+#with open(f"../data/{store_id}-buffer-r.p", 'wb') as f:
+#    pickle.dump(buffer, f)
