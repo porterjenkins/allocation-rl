@@ -16,7 +16,7 @@ from utils import serialize_floats
 from experiments.exp_utils import get_simple_simulator, evaluate_policy
 from experiments.logger import Logger
 
-from utils import get_store_id
+from utils import get_store_id, strip_reward_array
 
 def main(args):
     store_id = get_store_id(cfg.vals["train_data"])
@@ -30,12 +30,12 @@ def main(args):
     logger = Logger(hyp, "./results/", "off_policy_dqn")
 
     with open(f"../data/{store_id}-buffer-r.p", 'rb') as f:
-        buffer_env = pickle.load(f)
+        buffer_env = strip_reward_array(pickle.load(f))
 
     simulator = get_simple_simulator(cfg.vals)
     model = DQN(MlpPolicy, simulator, verbose=2)
     model.learn_off_policy(total_timesteps=args.epochs, buffer=buffer_env)
-
+    model.save(f"./models/{store_id}-{args.file_name}")
 
 
     reward, sigma = evaluate_policy(model, simulator, args.eval_eps)
@@ -54,6 +54,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--eval_eps', type=int, default=10)
+    parser.add_argument('--file-name', type=str, default="off-policy-dqn.p")
     args = parser.parse_args()
 
     main(args)

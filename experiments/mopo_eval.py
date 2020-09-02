@@ -55,14 +55,14 @@ def main(args):
                     rollout=args.rollouts,
                     n_actions = env_model.n_actions,
                     lmbda=args.lmbda,
-                    buffer_path=f"../data/{store_id}-buffer-r.p"
+                    buffer_path=f"../data/{store_id}-buffer-d-trn.p"
                     #buffer_path=None
 
         )
 
 
     mopo_dqn.learn()
-    mopo_dqn.policy.save(f"./models/{args.file_name}")
+    mopo_dqn.policy.save(f"./models/{store_id}-{args.file_name}")
 
 
     simulator = get_simple_simulator(cfg.vals)

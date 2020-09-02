@@ -85,7 +85,7 @@ def main(args):
                          clip_norm=bool(args.clip_norm), vae_lr=args.vae_lr)
 
         # Load buffer
-        with open(f"../data/{store_id}-buffer-r.p", 'rb') as f:
+        with open(f"../data/{store_id}-buffer-d-trn.p", 'rb') as f:
             replay_buffer = pickle.load(f)
 
         evaluations = []
@@ -107,7 +107,7 @@ def main(args):
         # print(stats_loss)
 
         # Save final policy
-        policy.save("%s" % (file_name), directory="./models")
+        policy.save(f"{store_id}-{args.file_name}", directory="./models")
 
         logger.set_result(
             {
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, TensorFlow and Numpy seeds
     parser.add_argument("--buffer_type", default="Robust")  # Prepends name to filename.
     parser.add_argument("--eval_freq", default=5e3, type=float)  # How often (time steps) we evaluate
-    parser.add_argument("--max_timesteps", default=1e6, type=float)  # Max time steps to run environment for
+    parser.add_argument("--max_timesteps", default=5e3, type=float)  # Max time steps to run environment for
     parser.add_argument("--batch_size", default=100, type=int)
     parser.add_argument("--discount", default=0.99, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
@@ -137,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("--dqda_clip", default=None, type=float)
     parser.add_argument("--clip_norm", default=0, type=int)
     parser.add_argument("--eval_eps", default=10, type=int)
+    parser.add_argument('--file-name', type=str, default="bcq.p")
     # parser.add_argument("--save_interval", default=20, type=int) # save every eval_freq intervals
     args = parser.parse_args()
 
