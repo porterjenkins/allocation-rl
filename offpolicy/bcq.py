@@ -178,6 +178,18 @@ class BCQ(object):
         else:
             return np.random.randint(self.action_dim, size=state.shape[0])
 
+
+    def predict_proba(self, state, mask):
+
+        q_, action_, fc3_actor_ = self.sess.run(
+            [self.bcq_train.q_1_out_, self.bcq_train.action_pred_, self.bcq_train.fc3_actor_],
+            feed_dict={
+                self.bcq_train.state_: state
+            }
+        )
+
+        return  action_
+
     def predict(self, observation, state=None, mask=None, deterministic=True):
         if isinstance(observation, dict):
             observation = State.get_vec_observation(observation)[None]
