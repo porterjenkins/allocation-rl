@@ -27,8 +27,8 @@ def main(args):
     env = get_simple_simulator(cfg.vals)
     n_actions = env.n_actions
 
-    tf.set_random_seed(args.seed)
-    np.random.seed(args.seed)
+    tf.set_random_seed(cfg.vals["random_seed"])
+    np.random.seed(cfg.vals["random_seed"])
 
     state_dim = observation_input(env.observation_space, batch_size=None, name='Ob', scale=False, reuse=tf.AUTO_REUSE)[0].shape[1].value
     action_dim = n_actions
@@ -58,8 +58,6 @@ def main(args):
 
         # print(stats_loss)
 
-        # Save final policy
-        policy.save(f"{store_id}-{args.file_name}", directory="./models")
 
 
 if __name__ == "__main__":
