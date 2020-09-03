@@ -78,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--eval-eps', type=int, default=10)
     parser.add_argument('--posterior-samples', type=int, default=25)
     parser.add_argument('--file-name', type=str, default="mopo-policy.p")
+    parser.add_argument('--eps', type=float, default=0.0)
 
     args = parser.parse_args()
 
