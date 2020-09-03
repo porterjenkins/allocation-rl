@@ -37,6 +37,8 @@ class Logger(object):
             f.write("Results\n")
             f.write("-------------------\n\n")
 
-            for k, v in self.result.items():
-                f.write(f"{k}: {v}\n")
+            if self.result:
+
+                for k, v in self.result.items():
+                    f.write(f"{k}: {v}\n")
 

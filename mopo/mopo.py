@@ -66,7 +66,7 @@ class Mopo(object):
 
 
     def get_penalized_reward(self, r, lmbda):
-        variance = np.sqrt(np.var(r))
+        variance = np.var(r)
         mean = r.mean()
         return mean - lmbda*variance
 
