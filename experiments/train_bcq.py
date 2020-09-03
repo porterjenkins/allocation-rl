@@ -88,18 +88,18 @@ def main(args):
         with open(f"../data/{store_id}-buffer-d-trn.p", 'rb') as f:
             replay_buffer = pickle.load(f)
 
-        evaluations = []
+        #evaluations = []
 
-        episode_num = 0
-        done = True
+        #episode_num = 0
+        #done = True
 
         training_iters = 0
         while training_iters < args.max_timesteps:
             stats_loss = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size,
                                       discount=args.discount)
 
-            reward, sigma = evaluate_policy(policy, env, eval_episodes=args.eval_eps)
-            evaluations.append((reward, sigma))
+            #reward, sigma = evaluate_policy(policy, env, eval_episodes=args.eval_eps)
+            #evaluations.append((reward, sigma))
             #np.save("./results/" + file_name, evaluations)
 
             training_iters += args.eval_freq
@@ -109,12 +109,6 @@ def main(args):
         # Save final policy
         policy.save(f"{store_id}-{args.file_name}", directory="./models")
 
-        logger.set_result(
-            {
-                "reward": reward,
-                "std": sigma
-            }
-        )
         logger.write()
 
 
