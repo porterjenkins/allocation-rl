@@ -23,7 +23,6 @@ def main(args):
     hyp = {
         "learning timesteps": args.epochs,
         "episode length": cfg.vals["episode_len"],
-        "n simulations": args.eval_eps,
         "store": store_id
     }
 

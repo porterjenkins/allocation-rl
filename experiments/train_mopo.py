@@ -46,7 +46,8 @@ def main(args):
                               prior=prior,
                               load_model=True,
                               full_posterior=True,
-                              posterior_samples=args.posterior_samples)
+                              posterior_samples=args.posterior_samples,
+                              verbose=False)
 
     policy = DQN(MlpPolicy, env_model, batch_size=args.batch_size)
 
@@ -64,6 +65,9 @@ def main(args):
                     )
 
     mopo_dqn.learn()
+
+    if os.path.exists(f"./models/{store_id}-{args.file_name}"):
+        os.remove(f"./models/{store_id}-{args.file_name}")
     mopo_dqn.policy.save(f"./models/{store_id}-{args.file_name}")
 
 

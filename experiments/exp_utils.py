@@ -11,7 +11,7 @@ def get_simple_simulator(config):
     :return:
     """
     simulator_cfg = {k: v for k, v in config.items()}
-    simulator_cfg["model_type"] = "linear"
+    simulator_cfg["model_type"] = "hierarchical"
     sim_nam = simulator_cfg['model_type'] + "-" + simulator_cfg['train_data'].split("/")[-1].split(".")[
         0] + "-no-precision" + ".p"
     simulator_cfg["model_path"] = os.path.join(config["prj_root"], "envs", sim_nam)
