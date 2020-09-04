@@ -29,8 +29,7 @@ def main(args):
         "episode length": cfg.vals["episode_len"],
         "n simulations": args.eval_eps,
         "store": store_id,
-        "eval frequency": args.eval_freq,
-        "max timesteps": args.max_timesteps,
+        "iterations:": args.iterations,
         "batch size": args.batch_size,
         "discount": args.discount,
         "tau": args.tau,
@@ -93,18 +92,12 @@ def main(args):
         #episode_num = 0
         #done = True
 
-        training_iters = 0
-        while training_iters < args.max_timesteps:
-            stats_loss = policy.train(replay_buffer, iterations=int(args.eval_freq), batch_size=args.batch_size,
-                                      discount=args.discount)
+        stats_loss = policy.train(replay_buffer, iterations=args.iterations, batch_size=args.batch_size,
+                                  discount=args.discount)
 
-            #reward, sigma = evaluate_policy(policy, env, eval_episodes=args.eval_eps)
-            #evaluations.append((reward, sigma))
-            #np.save("./results/" + file_name, evaluations)
 
-            training_iters += args.eval_freq
-            print("Training iterations: " + str(training_iters))
-        # print(stats_loss)
+        print("Training iterations: " + str(args.iterations))
+    # print(stats_loss)
 
         # Save final policy
         policy.save(f"{store_id}-{args.file_name}", directory="./models")
@@ -118,8 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_name", default='AllocationEnv-v0')  # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, TensorFlow and Numpy seeds
     parser.add_argument("--buffer_type", default="Robust")  # Prepends name to filename.
-    parser.add_argument("--eval_freq", default=5e3, type=float)  # How often (time steps) we evaluate
-    parser.add_argument("--max_timesteps", default=5e3, type=float)  # Max time steps to run environment for
+    parser.add_argument("--iterations", default=1e3, type=int)  # Max time steps to run environment for
     parser.add_argument("--batch_size", default=100, type=int)
     parser.add_argument("--discount", default=0.99, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
