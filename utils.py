@@ -82,3 +82,10 @@ def strip_reward_array(buffer):
 
 def get_action_space(n_regions, n_products):
     return (n_regions * n_products)*2 + 1
+
+
+def make_bin_mtx(arr, dims):
+    mtx = np.zeros(dims)
+    for idx in arr:
+        mtx[idx] = 1.0
+    return mtx
