@@ -39,8 +39,8 @@ vals['prior_fname'] = vals['prj_root'] + "/" + vals['prior_fname']
 vals['adj_mtx_fname'] = vals['prj_root'] + "/" + vals['adj_mtx_fname']
 
 # project random seed
-#vals["random_seed"] = int(vals["random_seed"])
-vals["random_seed"] = None
+vals["random_seed"] = int(vals["random_seed"])
+#vals["random_seed"] = None
 
 
 with open(vals['adj_mtx_fname']) as f:
