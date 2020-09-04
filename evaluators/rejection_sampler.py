@@ -167,8 +167,7 @@ class PSRS(object):
                     state = s_prime
                     cntr += 1
 
-            if r_i > 0:
-                rewards.append(r_i)
+            rewards.append(r_i)
 
 
         return rewards
