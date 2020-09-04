@@ -39,7 +39,7 @@ class Mopo(object):
         self.buffer_env, self.buffer_model = self.init_buffer(self.buffer_path, buffer_size)
         self.n_regions = env_model.n_regions
         self.n_products = env_model.n_products
-        self.env_model.reset()
+
 
 
 
@@ -77,8 +77,10 @@ class Mopo(object):
             print(f"Epoch {i}/{self.epochs}")
             pbar = tqdm(range(self.rollout_batch_size))
             for b in pbar:
-                state = self.buffer_env.sample(batch_size=1)[0][0]
-                #state = env.reset()
+                #state = self.buffer_env.sample(batch_size=1)[0][0]
+                state = self.env_model.reset()
+                state = State.get_vec_observation(state)
+
 
 
                 for h in range(self.rollout):
