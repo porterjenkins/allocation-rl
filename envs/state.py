@@ -1,6 +1,11 @@
 import numpy as np
 import config.config as cfg
 import pandas as pd
+import ast
+
+from envs.init_env import init_env
+
+from utils import make_bin_mtx
 
 class State(object):
     """
@@ -94,8 +99,25 @@ class State(object):
             for j in range(p):
                 means_mtx[i, j] = np.random.uniform(10, 100)
         return means_mtx
+
+    @classmethod
+    def init_env_loc(cls, config):
+        # setup state matrices
+        if 'env_init_loc' in config:
+            config['env_init_loc'] = ast.literal_eval(config['env_init_loc'])
+            config['env_init_loc'] = make_bin_mtx(config['env_init_loc'], dims=(config['n_regions'], config['n_products']))
+        else:
+            np.random.seed(config["random_seed"])
+            n_items = config['n_regions'] * config['n_products'] // 10
+            init_loc = init_env(config['n_regions'], config['n_products'], n_items)
+            config['env_init_loc'] = make_bin_mtx(init_loc, dims=(config['n_regions'], config['n_products']))
+
+        return config['env_init_loc']
+
     @classmethod
     def init_state(cls, config):
+
+
         if "prev_sales" not in config:
             train_data = pd.read_csv(config['train_data'])
             train_data = train_data[train_data['quantity'] >= 0]
@@ -104,17 +126,21 @@ class State(object):
         else:
             prev_sales = config['prev_sales']
 
+        board_state = State.init_env_loc(config)
+
+
         mean_prices = State.get_avg_prices(train_data)
         # compute upper bound for valid, single-day product/sales value
         upper_prices = np.quantile(train_data['sales'], q=.99)
         upper_prices = .25*upper_prices + upper_prices
-        board_state = config['env_init_loc']
+
         prev_sales_mask = prev_sales * board_state
+
 
         day_vec = State.get_day_vec(config['env_init_day'])
         state = State(day=config['env_init_day'],
                       day_vec=day_vec,
-                      board_config=config['env_init_loc'],
+                      board_config=board_state,
                       prev_sales=prev_sales_mask,
                       prices=mean_prices,
                       sales_bound=upper_prices)

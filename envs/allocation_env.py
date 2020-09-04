@@ -26,7 +26,7 @@ class AllocationEnv(gym.Env):
     metadata = {'render.modes': ['allocation'],
                 'max_cnt_reward_not_reduce_round': cfg.vals['episode_len']}
 
-    def __init__(self, config, prior, full_posterior=False, load_model=True, posterior_samples=25):
+    def __init__(self, config, prior, full_posterior=False, load_model=True, posterior_samples=25, verbose=True):
         self.n_regions = config['n_regions']
         self.n_products = config['n_products']
         self.n_temporal_features = config['n_temporal_features']
@@ -45,6 +45,7 @@ class AllocationEnv(gym.Env):
         self.n_actions = 1 + self.n_regions*self.n_products*2
         self.cost = config["cost"]
         self.log_linear = config["log_linear"]
+        self.verbose=verbose
 
         self._load_data(config['model_path'], config['train_data'], load_model)
         self.sample_index = np.arange(self.feature_shape[0])
@@ -204,7 +205,9 @@ class AllocationEnv(gym.Env):
         self.state = copy.copy(self.init_state)
         self.cnt_reward_not_reduce_round = 0
         self.viewer = None
-        print("*************************Resetting Environment")
+
+        if self.verbose:
+            print("*************************Resetting Environment")
         return self._get_state()
 
     def render(self, action, mode='allocation'):

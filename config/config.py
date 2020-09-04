@@ -39,7 +39,8 @@ vals['prior_fname'] = vals['prj_root'] + "/" + vals['prior_fname']
 vals['adj_mtx_fname'] = vals['prj_root'] + "/" + vals['adj_mtx_fname']
 
 # project random seed
-vals["random_seed"] = int(vals["random_seed"])
+#vals["random_seed"] = int(vals["random_seed"])
+vals["random_seed"] = None
 
 
 with open(vals['adj_mtx_fname']) as f:
@@ -52,14 +53,6 @@ vals['adj_mtx'] = make_bin_mtx(adj_mtx_vals['non_zero_entries'], dims=(vals['n_r
 # A + I - multiply by identity matrix
 #vals['adj_mtx'] = vals['adj_mtx'] + np.eye(vals['n_regions'])
 
-# setup state matrices
-if 'env_init_loc' in vals:
-    vals['env_init_loc'] = ast.literal_eval(vals['env_init_loc'])
-    vals['env_init_loc'] = make_bin_mtx(vals['env_init_loc'], dims=(vals['n_regions'], vals['n_products']))
-else:
-    np.random.seed(vals["random_seed"])
-    init_loc = init_env(vals['n_regions'], vals['n_products'])
-    vals['env_init_loc'] = make_bin_mtx(init_loc, dims=(vals['n_regions'], vals['n_products']))
 
 
 assert vals['model_type'] in ['hierarchical', 'linear']
