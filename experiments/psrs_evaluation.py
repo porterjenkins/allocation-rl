@@ -53,7 +53,9 @@ def eval_bcq(args):
 
     with tf.Session() as sess:
         # Initialize policy
-        policy = BCQPolicy(BCQ(state_dims, action_space, sess))
+        policy = BCQ(state_dims, action_space, sess)
+        policy.load(f"{store_id}-bcq.p", directory="./models")
+        policy = BCQPolicy(policy)
         psrs = PSRS(buffer_path, policy, env_policy, action_space, cfg.vals["n_regions"], cfg.vals["n_products"], args.epochs)
         r = psrs.evaluate()
 

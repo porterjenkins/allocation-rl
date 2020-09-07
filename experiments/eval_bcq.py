@@ -38,19 +38,13 @@ def main(args):
 
         # Initialize policy
         policy = BCQ(state_dim, action_dim, sess)
+        policy.load(f"{store_id}-{args.file_name}", directory="./models")
 
-
-        # Load buffer
-        with open(f"../data/{store_id}-buffer-d-trn.p", 'rb') as f:
-            replay_buffer = pickle.load(f)
 
         evaluations = []
 
         episode_num = 0
         done = True
-
-
-
         reward, sigma = evaluate_policy(policy, env, eval_episodes=args.eval_eps)
         evaluations.append((reward, sigma))
         #np.save("./results/" + file_name, evaluations)
@@ -64,6 +58,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--eval_eps", default=10, type=int)
+    parser.add_argument("--file-name", default="bcq.p")
     # parser.add_argument("--save_interval", default=20, type=int) # save every eval_freq intervals
     args = parser.parse_args()
 
