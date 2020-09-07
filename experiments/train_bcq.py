@@ -100,6 +100,8 @@ def main(args):
     # print(stats_loss)
 
         # Save final policy
+        if os.path.exists(f"./models/{store_id}-{args.file_name}"):
+            os.remove(f"./models/{store_id}-{args.file_name}")
         policy.save(f"{store_id}-{args.file_name}", directory="./models")
 
         logger.write()
