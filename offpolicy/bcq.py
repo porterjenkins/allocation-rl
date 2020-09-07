@@ -144,7 +144,7 @@ class BCQ(object):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.latent_dim = action_dim * 2
-        self.eval_eps = 0.001
+        self.eval_eps = .01
 
         self.bcq_train = BCQNetwork("train_bcq", state_dim=state_dim, action_dim=action_dim,
                                     actor_hs_list=actor_hs, critic_hs_list=critic_hs, critic_lr=critic_lr)
@@ -173,8 +173,12 @@ class BCQ(object):
             imt = np.array(action_/np.max(action_, axis=1, keepdims=True) > 0.3)
 
             if mask is not None:
-                imt = np.array(imt & np.array(mask, dtype=bool),dtype=int)
-            return np.argmax(imt * q_ + (1 - imt) * (-1e8), axis=1)
+                #imt = np.array(imt & np.array(mask, dtype=bool),dtype=int)
+                imt = imt * q_ + (1 - imt) * (-1e8) * mask
+            else:
+                imt = imt * q_ + (1 - imt) * (-1e8)
+
+            return np.argmax(imt, axis=1)
         else:
             return np.random.randint(self.action_dim, size=state.shape[0])
 
