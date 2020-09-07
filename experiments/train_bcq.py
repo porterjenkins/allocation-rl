@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=0, type=int)  # Sets Gym, TensorFlow and Numpy seeds
     parser.add_argument("--buffer_type", default="Robust")  # Prepends name to filename.
     parser.add_argument("--iterations", default=1e3, type=int)  # Max time steps to run environment for
-    parser.add_argument("--batch_size", default=100, type=int)
+    parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--discount", default=0.99, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
     parser.add_argument("--actor_lr", default=0.001, type=float)
