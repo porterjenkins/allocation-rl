@@ -118,7 +118,7 @@ class PSRS(object):
         return M
 
     def evaluate(self):
-
+        gamma = .8
         rewards = []
         for i in range(self.n_episodes):
 
@@ -163,11 +163,11 @@ class PSRS(object):
                 else:
                     #self.queue[state].pop()
 
-                    r_i += r
+                    r_i += (gamma)**cntr * r
                     state = s_prime
                     cntr += 1
-
-            rewards.append(r_i)
+            if r_i > 0:
+                rewards.append(r_i)
 
 
         return rewards

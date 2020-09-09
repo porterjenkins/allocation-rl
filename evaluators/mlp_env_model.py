@@ -121,7 +121,7 @@ def main(model, dataloader, hyp, fname):
 
 if __name__ == "__main__":
     store_id = get_store_id(cfg.vals["train_data"])
-    buffer_path = f"../data/{store_id}-buffer-d-trn.p"
+    buffer_path = f"../data/{store_id}-buffer-d-test.p"
     action_space = get_action_space(cfg.vals["n_regions"], cfg.vals["n_products"])
 
 

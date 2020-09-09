@@ -121,7 +121,7 @@ class Mopo(object):
 
 
                     # update policy with samples from D_env and D_model
-                    self.policy.update_weights(self.buffer_model)
+                self.policy.update_weights(self.buffer_model)
         self.save_buffer()
 
 

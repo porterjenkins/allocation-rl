@@ -19,8 +19,8 @@ from stable_baselines.deepq.replay_buffer import ReplayBuffer
 from envs.state import State
 
 TEST_T = cfg.vals["episode_len"]
-TIME_STEPS = 2000
-LEARNING_START = 500
+TIME_STEPS = 1000
+LEARNING_START = 200
 
 store_id = get_store_id(cfg.vals["train_data"])
 prior = Prior(config=cfg.vals)
@@ -33,7 +33,7 @@ model = DQN(MlpPolicy, env, verbose=2, learning_starts=LEARNING_START, gamma=.2,
 model.learn(total_timesteps=TIME_STEPS, learning_curve=False, test_t=TEST_T)
 
 
-with open(f"../data/{store_id}-buffer-d-trn.p", 'wb') as f:
+with open(f"../data/{store_id}-buffer-d-test.p", 'wb') as f:
     pickle.dump(model.replay_buffer, f)
 
 
